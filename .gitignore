@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environment / secrets
+.env
+*.key
+
+# Data & model artifacts (provenance is documented; raw/large files are not committed)
+data/raw/
+data/processed/
+data/*.csv
+data/*.parquet
+data/*.jsonl
+models/*.joblib
+models/*.pkl
+models/*.bin
+.cache/
+hf_cache/
+
+# Results: keep committed metrics JSON, ignore large/heavy artifacts
+results/*.npy
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Agent harness / personal files (not part of the project)
+.claude/
+DAVIDNKPA_CV2.pdf
