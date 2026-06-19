@@ -1,0 +1,32 @@
+{
+  "seed": 42,
+  "serving": "Production models are the best TF-IDF pipeline per task: torch-free and interpretable (top tokens from vocab x coefficients). MiniLM variants are trained/evaluated for the lift comparison only and are not persisted for serving.",
+  "tasks": {
+    "type": {
+      "classes": [
+        "bug",
+        "feature_request",
+        "documentation",
+        "question_other"
+      ],
+      "served_model_file": "type_clf.joblib",
+      "served_config": "tfidf+logreg",
+      "served_val_macro_f1": 0.679,
+      "best_overall_config": "tfidf+logreg",
+      "best_overall_val_macro_f1": 0.679,
+      "embedding_lift": {
+        "best_tfidf_config": "tfidf+logreg",
+        "best_tfidf_val_macro_f1": 0.6789937025846482,
+        "best_minilm_config": "minilm+logreg",
+        "best_minilm_val_macro_f1": 0.6622773741415013,
+        "lift_minilm_minus_tfidf": -0.016716328443146855
+      },
+      "all_configs_val_macro_f1": {
+        "tfidf+logreg": 0.679,
+        "tfidf+randomforest": 0.6563,
+        "minilm+logreg": 0.6623,
+        "minilm+randomforest": 0.5726
+      }
+    }
+  }
+}
