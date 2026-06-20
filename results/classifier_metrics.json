@@ -1,0 +1,295 @@
+{
+  "description": "Held-out TEST-set metrics for every trained config per task. The served production model is the best TF-IDF config (torch-free). MiniLM configs are reported only to show the embedding lift.",
+  "tasks": {
+    "type": {
+      "classes": [
+        "bug",
+        "feature_request",
+        "documentation",
+        "question_other"
+      ],
+      "configs": {
+        "tfidf+logreg": {
+          "accuracy": 0.6742889012827663,
+          "macro_precision": 0.6776999015768519,
+          "macro_recall": 0.6743487082912637,
+          "macro_f1": 0.6751330932680972,
+          "per_class": {
+            "bug": {
+              "precision": 0.6540084388185654,
+              "recall": 0.6904231625835189,
+              "f1": 0.6717226435536294,
+              "support": 449
+            },
+            "feature_request": {
+              "precision": 0.6596194503171248,
+              "recall": 0.6964285714285714,
+              "f1": 0.6775244299674267,
+              "support": 448
+            },
+            "documentation": {
+              "precision": 0.7727272727272727,
+              "recall": 0.6860986547085202,
+              "f1": 0.7268408551068883,
+              "support": 446
+            },
+            "question_other": {
+              "precision": 0.6244444444444445,
+              "recall": 0.6244444444444445,
+              "f1": 0.6244444444444445,
+              "support": 450
+            }
+          },
+          "confusion_matrix": {
+            "labels": [
+              "bug",
+              "feature_request",
+              "documentation",
+              "question_other"
+            ],
+            "matrix": [
+              [
+                310,
+                42,
+                22,
+                75
+              ],
+              [
+                44,
+                312,
+                45,
+                47
+              ],
+              [
+                36,
+                57,
+                306,
+                47
+              ],
+              [
+                84,
+                62,
+                23,
+                281
+              ]
+            ]
+          },
+          "val_macro_f1": 0.6789937025846482
+        },
+        "tfidf+randomforest": {
+          "accuracy": 0.6553262688232013,
+          "macro_precision": 0.6568430345315492,
+          "macro_recall": 0.6554923119661838,
+          "macro_f1": 0.6532232369211881,
+          "per_class": {
+            "bug": {
+              "precision": 0.6303501945525292,
+              "recall": 0.7216035634743875,
+              "f1": 0.6728971962616822,
+              "support": 449
+            },
+            "feature_request": {
+              "precision": 0.671264367816092,
+              "recall": 0.6517857142857143,
+              "f1": 0.6613816534541337,
+              "support": 448
+            },
+            "documentation": {
+              "precision": 0.6590909090909091,
+              "recall": 0.7152466367713004,
+              "f1": 0.6860215053763441,
+              "support": 446
+            },
+            "question_other": {
+              "precision": 0.6666666666666666,
+              "recall": 0.5333333333333333,
+              "f1": 0.5925925925925926,
+              "support": 450
+            }
+          },
+          "confusion_matrix": {
+            "labels": [
+              "bug",
+              "feature_request",
+              "documentation",
+              "question_other"
+            ],
+            "matrix": [
+              [
+                324,
+                38,
+                44,
+                43
+              ],
+              [
+                41,
+                292,
+                76,
+                39
+              ],
+              [
+                44,
+                45,
+                319,
+                38
+              ],
+              [
+                105,
+                60,
+                45,
+                240
+              ]
+            ]
+          },
+          "val_macro_f1": 0.6563089698854617
+        },
+        "minilm+logreg": {
+          "accuracy": 0.6279977691020636,
+          "macro_precision": 0.6298376056463753,
+          "macro_recall": 0.6280212396625333,
+          "macro_f1": 0.6281840179852292,
+          "per_class": {
+            "bug": {
+              "precision": 0.6584362139917695,
+              "recall": 0.7126948775055679,
+              "f1": 0.6844919786096256,
+              "support": 449
+            },
+            "feature_request": {
+              "precision": 0.6352941176470588,
+              "recall": 0.6026785714285714,
+              "f1": 0.6185567010309279,
+              "support": 448
+            },
+            "documentation": {
+              "precision": 0.6853658536585366,
+              "recall": 0.6300448430493274,
+              "f1": 0.6565420560747663,
+              "support": 446
+            },
+            "question_other": {
+              "precision": 0.5402542372881356,
+              "recall": 0.5666666666666667,
+              "f1": 0.5531453362255966,
+              "support": 450
+            }
+          },
+          "confusion_matrix": {
+            "labels": [
+              "bug",
+              "feature_request",
+              "documentation",
+              "question_other"
+            ],
+            "matrix": [
+              [
+                320,
+                26,
+                20,
+                83
+              ],
+              [
+                34,
+                270,
+                67,
+                77
+              ],
+              [
+                36,
+                72,
+                281,
+                57
+              ],
+              [
+                96,
+                57,
+                42,
+                255
+              ]
+            ]
+          },
+          "val_macro_f1": 0.6622773741415013
+        },
+        "minilm+randomforest": {
+          "accuracy": 0.5778025655326269,
+          "macro_precision": 0.5764966071049265,
+          "macro_recall": 0.5778827270071375,
+          "macro_f1": 0.5688930722570193,
+          "per_class": {
+            "bug": {
+              "precision": 0.590032154340836,
+              "recall": 0.8173719376391982,
+              "f1": 0.6853408029878618,
+              "support": 449
+            },
+            "feature_request": {
+              "precision": 0.550321199143469,
+              "recall": 0.5736607142857143,
+              "f1": 0.5617486338797815,
+              "support": 448
+            },
+            "documentation": {
+              "precision": 0.6888888888888889,
+              "recall": 0.5560538116591929,
+              "f1": 0.6153846153846154,
+              "support": 446
+            },
+            "question_other": {
+              "precision": 0.47674418604651164,
+              "recall": 0.36444444444444446,
+              "f1": 0.41309823677581864,
+              "support": 450
+            }
+          },
+          "confusion_matrix": {
+            "labels": [
+              "bug",
+              "feature_request",
+              "documentation",
+              "question_other"
+            ],
+            "matrix": [
+              [
+                367,
+                22,
+                12,
+                48
+              ],
+              [
+                53,
+                257,
+                66,
+                72
+              ],
+              [
+                60,
+                78,
+                248,
+                60
+              ],
+              [
+                142,
+                110,
+                34,
+                164
+              ]
+            ]
+          },
+          "val_macro_f1": 0.5726030362137868
+        }
+      }
+    }
+  },
+  "summary": {
+    "type": {
+      "served_config": "tfidf+logreg",
+      "served_test_macro_f1": 0.6751330932680972,
+      "served_test_accuracy": 0.6742889012827663,
+      "best_tfidf_config": "tfidf+logreg",
+      "best_tfidf_test_macro_f1": 0.6751330932680972,
+      "best_minilm_config": "minilm+logreg",
+      "best_minilm_test_macro_f1": 0.6281840179852292,
+      "lift_minilm_minus_tfidf_test_macro_f1": -0.04694907528286807
+    }
+  }
+}
