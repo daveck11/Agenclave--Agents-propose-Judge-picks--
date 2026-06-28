@@ -6,7 +6,9 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from datetime import datetime
+
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 # Guard against abuse / accidental megabyte payloads. Issue text is short.
 MAX_LEN = 20_000
@@ -44,6 +46,10 @@ class RunRequest(BaseModel):
         description="If true, dispatch to the real providers (spends API credits). "
         "Default is a dry run: triage + gate + cost projection, no calls.",
     )
+    issue_id: int | None = Field(
+        None,
+        description="Optional saved-issue id to associate the run with (authed only).",
+    )
 
     @field_validator("title", "body")
     @classmethod
@@ -59,12 +65,23 @@ class RunRequest(BaseModel):
         return self
 
 
+class Recommendation(BaseModel):
+    # A single suggested next step for a triaged issue.
+
+    title: str = Field(..., description="Short action label.")
+    detail: str = Field(..., description="What to do and why.")
+    kind: str = Field(
+        ..., description="One of: action, proceed, caution."
+    )
+
+
 class TriageResponse(BaseModel):
     # The triage prediction returned to clients.
     #
     #     The shipped deliverable is type-only, so `severity` / `severity_confidence`
     #     are nullable: they are populated only when the optional severity head is
-    #     present, and `None` otherwise.
+    #     present, and `None` otherwise. `recommendations` /
+    #     `can_proceed_to_stage2` come from the deterministic recommender.
 
     label: str = Field(..., description="Predicted issue type.")
     confidence: float = Field(..., description="Confidence in the TYPE label (0-1).")
@@ -77,3 +94,98 @@ class TriageResponse(BaseModel):
     top_tokens: list[str] = Field(
         default_factory=list, description="TF-IDF tokens driving the type prediction."
     )
+    recommendations: list[Recommendation] = Field(
+        default_factory=list, description="Suggested next steps for this issue."
+    )
+    can_proceed_to_stage2: bool = Field(
+        False, description="True only for bugs (eligible for the code-fix agents)."
+    )
+
+
+# --- Accounts / persistence (Stage 3) -----------------------------------------
+
+
+class RegisterRequest(BaseModel):
+    # Credentials for creating an account.
+
+    email: EmailStr = Field(..., description="Account email (unique).")
+    password: str = Field(..., min_length=8, max_length=128, description="Password.")
+
+
+class LoginRequest(BaseModel):
+    # Credentials for obtaining a token.
+
+    email: EmailStr
+    password: str = Field(..., min_length=1, max_length=128)
+
+
+class UserOut(BaseModel):
+    # Public view of a user account.
+
+    id: int
+    email: EmailStr
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class Token(BaseModel):
+    # An issued access token plus the authenticated user.
+
+    access_token: str
+    token_type: str = "bearer"
+    user: UserOut
+
+
+class IssueCreate(BaseModel):
+    # A triaged issue to persist (snapshots the Stage 1 prediction).
+
+    title: str = Field(..., description="Issue title.")
+    body: str = Field("", description="Issue body (optional).")
+    label: str = Field(..., description="Predicted issue type.")
+    confidence: float = Field(..., description="Confidence in the type label (0-1).")
+    severity: str | None = Field(None, description="Coarse severity (optional).")
+    top_tokens: list[str] = Field(
+        default_factory=list, description="Tokens driving the prediction."
+    )
+    recommendations: list[Recommendation] = Field(
+        default_factory=list, description="Recommendation snapshot."
+    )
+
+    @field_validator("title", "body")
+    @classmethod
+    def _length_guard(cls, v: str) -> str:
+        if v is not None and len(v) > MAX_LEN:
+            raise ValueError(f"field too long (max {MAX_LEN} characters)")
+        return v
+
+
+class IssueOut(BaseModel):
+    # A persisted issue returned to its owner.
+
+    id: int
+    title: str
+    body: str
+    label: str
+    confidence: float
+    severity: str | None
+    top_tokens: list[str]
+    recommendations: list[Recommendation]
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class RunOut(BaseModel):
+    # A persisted pipeline run returned to its owner.
+
+    id: int
+    issue_id: int | None
+    title: str
+    body: str
+    gate_passed: bool
+    ran_live: bool
+    result: dict
+    created_at: datetime
+
+    model_config = {"from_attributes": True}

@@ -30,6 +30,12 @@ class Settings(BaseSettings):
     blackbox_api_key: str | None = None
     blackbox_api_base: str = "https://cloud.blackbox.ai/api"
 
+    # --- Accounts / persistence (Stage 3) ---
+    # Override the secret in production via `.env` (SECRET_KEY).
+    secret_key: str = "dev-insecure-change-me-in-prod"
+    access_token_expire_minutes: int = 60 * 24 * 7  # one week
+    database_url: str = f"sqlite+aiosqlite:///{DATA_DIR}/agenclave.db"
+
     @property
     def agent_model_list(self) -> list[str]:
         return [m.strip() for m in self.agent_models.split(",") if m.strip()]

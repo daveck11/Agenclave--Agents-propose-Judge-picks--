@@ -28,6 +28,9 @@ models/*.bin
 .cache/
 hf_cache/
 
+# Local SQLite database (accounts / persistence)
+data/*.db*
+
 # Results: keep committed metrics JSON, ignore large/heavy artifacts
 results/*.npy
 

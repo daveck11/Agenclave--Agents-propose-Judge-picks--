@@ -76,11 +76,19 @@ def test_triage_happy_path_or_503():
         "severity",
         "severity_confidence",
         "top_tokens",
+        "recommendations",
+        "can_proceed_to_stage2",
     }
     assert body["label"] in TYPE_CLASSES
     assert 0.0 <= body["confidence"] <= 1.0
     assert isinstance(body["top_tokens"], list)
     assert all(isinstance(tok, str) for tok in body["top_tokens"])
+    # Stage 3 enrichment: deterministic recommendations + the Stage 2 gate flag.
+    assert isinstance(body["recommendations"], list) and body["recommendations"]
+    assert all({"title", "detail", "kind"} <= set(r) for r in body["recommendations"])
+    assert isinstance(body["can_proceed_to_stage2"], bool)
+    # Only a bug is eligible for Stage 2.
+    assert body["can_proceed_to_stage2"] is (body["label"] == "bug")
     # Severity is optional (type-only deliverable): either a valid class with a
     # [0,1] confidence, or null/null when the severity head is not present.
     if body["severity"] is None:
