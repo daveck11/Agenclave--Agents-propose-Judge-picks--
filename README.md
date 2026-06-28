@@ -5,35 +5,48 @@
 > coding task to N model-agents in parallel → a Chairman judge scores and
 > selects/synthesises the best patch).
 
-**Status:** ✅ Stage 1 complete (type-only triage classifier + FastAPI + React demo). Stage 2 (Chairman harness) pending sign-off. All numbers below are from real runs.
+**Status:** ✅ Stage 1 (triage) + ✅ Stage 2 (Chairman harness) implemented and tested, now wrapped in a full **account-backed web app**: triage → actionable **recommendations** → one-click **code-fix** hand-off → a saved **Workspace**. One command to run the whole thing: **`make app`**. All ML numbers below are from real runs.
 
 ---
 
 ## Architecture
 
 ```
-                 ┌─────────────────────────────────────────────────────┐
-   issue  ──────▶│  STAGE 1: Triage classifier (the "front door")       │
- {title, body}   │  TF-IDF / MiniLM embeddings → issue-type label       │
-                 └───────────────┬─────────────────────────────────────┘
-                                 │  label, confidence
-                  filter non-bugs│  annotate task
-                                 ▼
-                 ┌─────────────────────────────────────────────────────┐
-                 │  STAGE 2: Chairman best-of-N harness                 │
-                 │                                                       │
-                 │     Task ──┬──▶ Agent A (Claude)  ─┐                  │
-                 │            ├──▶ Agent B (OpenAI)  ─┤  candidate       │
-                 │            └──▶ Agent N (BlackBox)─┘  patches         │
-                 │                       │                               │
-                 │                       ▼                               │
-                 │              Chairman judge LLM  ──▶ ranked pick /    │
-                 │              (strict JSON)           synthesis        │
-                 └─────────────────────────────────────────────────────┘
+  ┌────────────────────────────────────────────────────────────────────────────┐
+  │  WEB APP   React SPA (accounts)  ·  FastAPI + SQLite  ·  JWT auth, persistence │
+  └────────────────────────────────────────────────────────────────────────────┘
+
+   issue
+ {title, body}
+       │
+       ▼
+ ┌──────────────────────────────┐  recommendations + gate
+ │ STAGE 1: Triage classifier   │ ──────────────┐
+ │ TF-IDF → type + confidence   │  "bug" → CTA   │   (non-bugs filtered, $0)
+ │ + actionable recommendations │                ▼
+ └──────────────────────────────┘   ┌───────────────────────────────────────┐
+                                     │ STAGE 2: Chairman best-of-N harness    │
+                                     │   Task ─┬─▶ Agent A (Claude)  ─┐        │
+                                     │         ├─▶ Agent B (OpenAI)  ─┤ patches │
+                                     │         └─▶ Agent N (BlackBox)─┘        │
+                                     │                  │                      │
+                                     │                  ▼                      │
+                                     │     Chairman judge LLM → ranked pick /  │
+                                     │     (strict JSON)        synthesis      │
+                                     └───────────────────────────────────────┘
+
+  Logged-in users save issues + runs (both agents' patches + the Chairman's pick) → Workspace
 ```
 
 Providers are pluggable behind one `Agent` interface (`src/agenclave/harness/interfaces.py`):
 a **direct** adapter (Claude/OpenAI) and a **BlackBox Agents API** adapter, switchable by config.
+
+## The app
+
+- **Triage + recommendations** — classify an issue and get deterministic, per-type next steps (reproduce / add a failing test / scope a feature / convert to a discussion). Bugs surface a one-click **"Send to the code-fix agents →"** call-to-action.
+- **Code-fix** — the issue is handed to the best-of-N harness (dry-run by default; live dispatch spends credits). Both agents' candidate patches and the Chairman's selected/synthesised patch are shown.
+- **Accounts + Workspace** — register/log in (bcrypt + JWT); save issues and runs to SQLite and revisit them in a per-user Workspace. The anonymous demo still works without an account.
+- **Distributable** — `make app` builds the React app and serves the whole product (UI + API) from a single `uvicorn` process on one origin.
 
 ## How this maps to BlackBox's Chairman LLM
 
@@ -49,11 +62,21 @@ a **direct** adapter (Claude/OpenAI) and a **BlackBox Agents API** adapter, swit
 ```bash
 make setup     # venv + pinned deps (CPU-only torch)
 make stage1    # data -> train -> eval  (writes results/classifier_metrics.json)
-make serve     # FastAPI triage service on :8000
-make demo      # Vite React demo (separate terminal)
+
+# Run the whole product (UI + API) from one process:
+make app       # builds frontend/dist, serves everything on http://localhost:8000
+
+# Or develop with hot reload (two terminals):
+make serve     # FastAPI on :8000
+make demo      # Vite dev server on :5173 (proxies to :8000)
+
 make test      # pytest
-# Stage 2 (after sign-off): make stage2
+make stage2    # Chairman best-of-N harness (dry run by default; --live spends credits)
 ```
+
+Accounts/persistence need no setup — SQLite is created on first start (`data/agenclave.db`).
+Set a real `SECRET_KEY` in `.env` for anything beyond local use. Stage 2 live runs need
+`ANTHROPIC_API_KEY` / `OPENAI_API_KEY` in `.env`.
 
 Windows without `make`: run the one-line equivalent per target (see the `Makefile`).
 
@@ -106,13 +129,15 @@ See [`data/README.md`](data/README.md) for exact sources, licenses, and row coun
 
 ```
 src/agenclave/
-  classifier/   feature pipeline, training, inference (Stage 1)
-  api/          FastAPI /triage service (Stage 1)
+  classifier/   feature pipeline, training, inference, recommendations (Stage 1)
+  api/          FastAPI app factory; routes/ (triage, auth, issues, runs);
+                db.py + models.py (SQLAlchemy), auth.py (bcrypt + JWT)
   harness/      Agent interface, providers, dispatch, Chairman judge (Stage 2)
 scripts/        prepare_data | train_classifier | evaluate_classifier | run_chairman
-frontend/       Vite React demo
-tests/          pytest (feature pipeline, API contract, BlackBox adapter mocks)
-results/        metrics JSON + plots
+frontend/src/   React SPA: pages/ (Triage, CodeFix, Workspace, Login, Register),
+                components/, auth + issue contexts, api.js
+tests/          pytest (features, API contract, auth, recommend, issues/runs, harness)
+results/        metrics JSON + plots + Stage 2 run artifacts
 models/         saved models + MODEL_CARD.md
 ```
 
