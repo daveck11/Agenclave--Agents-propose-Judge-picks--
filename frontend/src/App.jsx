@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
+import { Routes, Route, Link } from 'react-router-dom'
 import './App.css'
-import TriageView from './TriageView'
-import Stage2View from './Stage2View'
-
-const TABS = [
-  { id: 'triage', label: 'Stage 1 · Triage' },
-  { id: 'stage2', label: 'Stage 2 · Best-of-N' },
-]
+import Nav from './components/Nav'
+import AuthMenu from './components/AuthMenu'
+import ProtectedRoute from './components/ProtectedRoute'
+import TriagePage from './pages/TriagePage'
+import CodeFixPage from './pages/CodeFixPage'
+import WorkspacePage from './pages/WorkspacePage'
+import LoginPage from './pages/LoginPage'
+import RegisterPage from './pages/RegisterPage'
 
 function useApiHealth() {
   const [ok, setOk] = useState(null)
@@ -32,51 +34,60 @@ function useApiHealth() {
 }
 
 export default function App() {
-  const [tab, setTab] = useState('triage')
-  // Shared issue text so a bug entered on one tab stays on the other.
-  const [title, setTitle] = useState('')
-  const [body, setBody] = useState('')
   const health = useApiHealth()
-
-  const issue = { title, body, setTitle, setBody }
 
   return (
     <div className="page">
       <div className="shell">
         <header className="hero">
           <div className="hero-top">
-            <div className="brand">
+            <Link to="/" className="brand">
               <span className="logo">◆</span>
               <span className="wordmark">Agenclave</span>
+            </Link>
+            <div className="hero-right">
+              <span
+                className={`status ${
+                  health === null ? 'pending' : health ? 'up' : 'down'
+                }`}
+              >
+                <span className="dot" />
+                {health === null ? 'connecting' : health ? 'API live' : 'API offline'}
+              </span>
+              <AuthMenu />
             </div>
-            <span className={`status ${health === null ? 'pending' : health ? 'up' : 'down'}`}>
-              <span className="dot" />
-              {health === null ? 'connecting' : health ? 'API live' : 'API offline'}
-            </span>
           </div>
           <p className="tagline">Issue triage and best-of-N agent code fixes.</p>
-          <nav className="tabs">
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                className={`tab${t.id === tab ? ' active' : ''}`}
-                onClick={() => setTab(t.id)}
-              >
-                <span className="tab-label">{t.label}</span>
-              </button>
-            ))}
-          </nav>
+          <Nav />
         </header>
 
         <main className="card">
-          {/* Both stay mounted; hidden tab keeps its inputs and results. */}
-          <div style={{ display: tab === 'triage' ? 'block' : 'none' }}>
-            <TriageView issue={issue} />
-          </div>
-          <div style={{ display: tab === 'stage2' ? 'block' : 'none' }}>
-            <Stage2View issue={issue} />
-          </div>
+          <Routes>
+            <Route path="/" element={<TriagePage />} />
+            <Route path="/code-fix" element={<CodeFixPage />} />
+            <Route
+              path="/workspace"
+              element={
+                <ProtectedRoute>
+                  <WorkspacePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route
+              path="*"
+              element={
+                <div className="empty-state">
+                  <div className="empty-icon">◇</div>
+                  <p>Page not found.</p>
+                  <Link to="/" className="btn-secondary">
+                    Back to Triage
+                  </Link>
+                </div>
+              }
+            />
+          </Routes>
         </main>
 
         <footer className="foot">Agenclave · MIT licensed</footer>

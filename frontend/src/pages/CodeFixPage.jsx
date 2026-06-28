@@ -1,5 +1,8 @@
 import { useState } from 'react'
-import RunResult from './components/RunResult'
+import { post } from '../api'
+import { useAuth } from '../auth/AuthContext'
+import { useIssue } from '../context/IssueContext'
+import RunResult from '../components/RunResult'
 
 const EST_COST = '~$0.07'
 
@@ -22,16 +25,23 @@ const EXAMPLES = [
   },
 ]
 
-export default function Stage2View({ issue }) {
-  const { title, body, setTitle, setBody } = issue
+export default function CodeFixPage() {
+  const { user } = useAuth()
+  const { current, patchIssue } = useIssue()
+
+  // Prefill from the handed-off issue; the fields stay editable.
+  const title = current.title
+  const body = current.body
+  const setTitle = (v) => patchIssue({ title: v })
+  const setBody = (v) => patchIssue({ body: v })
+
   const [live, setLive] = useState(false)
   const [status, setStatus] = useState('idle')
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
 
   function loadExample(ex) {
-    setTitle(ex.title)
-    setBody(ex.body)
+    patchIssue({ title: ex.title, body: ex.body })
     setResult(null)
     setError('')
   }
@@ -41,38 +51,26 @@ export default function Stage2View({ issue }) {
     setResult(null)
     setStatus('running')
     try {
-      const res = await fetch('/runs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, body, live }),
-      })
-      if (!res.ok) {
-        let detail = ''
-        try {
-          detail = (await res.json()).detail || ''
-        } catch {
-          /* ignore */
-        }
-        setError(`Run failed (${res.status}). ${detail}`.trim())
-        setStatus('idle')
-        return
-      }
-      setResult(await res.json())
+      // When logged in the backend saves the run automatically and returns a
+      // run_id; we surface that as a "saved" badge.
+      const data = await post('/runs', { title, body, live }, { auth: Boolean(user) })
+      setResult(data)
       setStatus('done')
-    } catch {
-      setError('Could not reach the API.')
+    } catch (err) {
+      setError(err.message || 'Could not reach the API.')
       setStatus('idle')
     }
   }
 
   const running = status === 'running'
   const canRun = (title.trim() || body.trim()) && !running
+  const savedRun = Boolean(user && result && result.run_id)
 
   return (
     <>
       <p className="subtitle">
-        Stage 1 triages the issue and gates Stage 2. Only a bug is sent to the
-        agents.
+        Stage 1 triages the issue and gates Stage 2. Only a bug is dispatched to
+        the best-of-N agents.
       </p>
 
       <div className="examples">
@@ -134,6 +132,18 @@ export default function Stage2View({ issue }) {
       {running && live && (
         <div className="s2-status pulse">
           Running. Dispatching to the agents and the judge, about a minute.
+        </div>
+      )}
+
+      {!user && (
+        <div className="cost-note" style={{ marginTop: 14 }}>
+          <strong>Log in</strong> to automatically save runs to your Workspace.
+        </div>
+      )}
+
+      {savedRun && (
+        <div className="save-badge" style={{ marginTop: 14 }}>
+          Saved to your Workspace ✓
         </div>
       )}
 
