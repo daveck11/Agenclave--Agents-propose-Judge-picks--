@@ -147,6 +147,8 @@ async def _run_one(task: Task, agents, chairman: Chairman) -> dict:
         )
     return {
         "instance_id": task.instance_id,
+        "repo": task.repo,
+        "problem_statement": task.problem_statement,
         "triage_label": task.triage_label,
         "candidates": [
             {

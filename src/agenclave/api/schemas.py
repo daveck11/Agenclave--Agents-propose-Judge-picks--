@@ -33,6 +33,32 @@ class TriageRequest(BaseModel):
         return self
 
 
+class RunRequest(BaseModel):
+    # An issue to run through the full pipeline: Stage 1 triage gate, then (if it
+    # passes the gate AND `live` is set) the Stage 2 best-of-N dispatch + judge.
+
+    title: str = Field("", description="Issue title.")
+    body: str = Field("", description="Issue body (optional).")
+    live: bool = Field(
+        False,
+        description="If true, dispatch to the real providers (spends API credits). "
+        "Default is a dry run: triage + gate + cost projection, no calls.",
+    )
+
+    @field_validator("title", "body")
+    @classmethod
+    def _length_guard(cls, v: str) -> str:
+        if v is not None and len(v) > MAX_LEN:
+            raise ValueError(f"field too long (max {MAX_LEN} characters)")
+        return v
+
+    @model_validator(mode="after")
+    def _not_all_blank(self) -> "RunRequest":
+        if not (self.title or "").strip() and not (self.body or "").strip():
+            raise ValueError("at least one of 'title' or 'body' must be non-empty")
+        return self
+
+
 class TriageResponse(BaseModel):
     # The triage prediction returned to clients.
     #

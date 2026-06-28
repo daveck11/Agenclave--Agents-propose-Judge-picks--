@@ -10,6 +10,7 @@ export default defineConfig({
     proxy: {
       '/triage': 'http://localhost:8000',
       '/health': 'http://localhost:8000',
+      '/runs': 'http://localhost:8000',
     },
   },
 })
