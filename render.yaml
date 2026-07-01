@@ -1,0 +1,26 @@
+# Render blueprint — near one-click deploy of the Agenclave demo.
+# Render dashboard → New → Blueprint → connect this repo. Builds the Dockerfile and
+# serves UI + API from a single web service. SECRET_KEY is auto-generated.
+#
+# SAFE BY DEFAULT: no provider API keys are set here, so the public demo cannot
+# trigger paid live runs. Triage (Stage 1) works, and the pre-computed Chairman run
+# is shown read-only via /runs/latest.
+#
+# To give a LIVE Blackbox demo (e.g. for a pitch), add these in the Render dashboard
+# and redeploy — then remove them afterwards so the URL can't spend your credits:
+#   AGENCLAVE_PROVIDER=blackbox
+#   BLACKBOX_API_KEY=sk-...
+#   AGENCLAVE_BLACKBOX_API_BASE=https://api.blackbox.ai/v1
+#   AGENCLAVE_AGENT_MODELS=blackboxai/anthropic/claude-sonnet-4.6,blackboxai/openai/gpt-5.4,blackboxai/google/gemini-3.1-flash-lite,blackboxai/deepseek/deepseek-v4-pro
+#   AGENCLAVE_CHAIRMAN_MODEL=blackboxai/anthropic/claude-opus-4.7
+services:
+  - type: web
+    name: agenclave
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
