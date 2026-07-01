@@ -1,0 +1,19 @@
+# Keep the build context (and image) small.
+.git
+.venv
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.ruff_cache
+
+# Node / build outputs are produced inside the image, not copied from host.
+frontend/node_modules
+frontend/dist
+
+# Training data + local databases are not needed at serve time (db is created
+# fresh under /app/data at startup; models/ and results/ ARE copied in explicitly).
+data
+*.db
+
+# Docs / portfolio artifacts not needed in the runtime image.
+DAVIDNKPA_CV2.pdf
