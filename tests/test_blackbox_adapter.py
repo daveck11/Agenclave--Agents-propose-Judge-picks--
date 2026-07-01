@@ -1,9 +1,8 @@
-# Mocked unit tests for the BlackBox Agents API adapter.
+# Mocked unit tests for the BlackBox AI adapter (OpenAI-compatible).
 #
-# The two endpoints (`POST /tasks` and `GET /tasks/{id}`) are mocked with
-# respx, so these run offline with no `bb_` key. They cover the submit -> poll
-# -> result happy path, the failed-task path (error captured, not raised), the
-# missing-key guard, and HTTP errors.
+# BlackBox's `/chat/completions` endpoint is mocked with respx, so these run
+# offline with no `bb_` key. They cover the happy path (diff extracted), a
+# non-fenced diff, an API error (captured, not raised), and the missing-key guard.
 
 from __future__ import annotations
 
@@ -19,7 +18,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from agenclave.harness.interfaces import Task  # noqa: E402
 from agenclave.harness.providers.blackbox import BlackBoxAgent  # noqa: E402
 
-BASE = "https://blackbox.test/api"
+BASE = "https://blackbox.test/v1"
 
 
 def _task():
@@ -27,28 +26,33 @@ def _task():
 
 
 def _agent():
-    # poll_interval=0 keeps the test fast (no real waiting).
-    return BlackBoxAgent(
-        "blackbox-coder", api_key="bb_test", api_base=BASE, poll_interval=0
-    )
+    return BlackBoxAgent("blackbox/claude-sonnet", api_key="bb_test", api_base=BASE)
+
+
+def _completion(content: str) -> dict:
+    # Minimal OpenAI-compatible chat.completion body the SDK can parse.
+    return {
+        "id": "chatcmpl-test",
+        "object": "chat.completion",
+        "created": 0,
+        "model": "blackbox/claude-sonnet",
+        "choices": [
+            {
+                "index": 0,
+                "message": {"role": "assistant", "content": content},
+                "finish_reason": "stop",
+            }
+        ],
+    }
 
 
 @respx.mock
-async def test_submit_poll_success():
-    respx.post(f"{BASE}/tasks").mock(
-        return_value=httpx.Response(200, json={"id": "t1"})
-    )
-    respx.get(f"{BASE}/tasks/t1").mock(
-        side_effect=[
-            httpx.Response(200, json={"status": "running"}),
-            httpx.Response(
-                200,
-                json={
-                    "status": "completed",
-                    "result": "```diff\n--- a/f.py\n+++ b/f.py\n@@\n-x\n+y\n```",
-                },
-            ),
-        ]
+async def test_completion_success_fenced_diff():
+    respx.post(f"{BASE}/chat/completions").mock(
+        return_value=httpx.Response(
+            200,
+            json=_completion("```diff\n--- a/f.py\n+++ b/f.py\n@@\n-x\n+y\n```"),
+        )
     )
     res = await _agent().propose_patch(_task())
     assert res.ok
@@ -58,47 +62,30 @@ async def test_submit_poll_success():
 
 
 @respx.mock
-async def test_failed_task_captures_error():
-    respx.post(f"{BASE}/tasks").mock(
-        return_value=httpx.Response(200, json={"task_id": "t2"})
-    )
-    respx.get(f"{BASE}/tasks/t2").mock(
-        return_value=httpx.Response(200, json={"status": "failed", "error": "OOM"})
-    )
-    res = await _agent().propose_patch(_task())
-    assert not res.ok
-    assert "OOM" in (res.error or "")
-
-
-@respx.mock
-async def test_http_error_captured():
-    respx.post(f"{BASE}/tasks").mock(return_value=httpx.Response(500, text="boom"))
-    res = await _agent().propose_patch(_task())
-    assert not res.ok
-    assert res.error  # an HTTPStatusError string, not a crash
-
-
-async def test_missing_key_guarded():
-    agent = BlackBoxAgent("blackbox-coder", api_key="", api_base=BASE)
-    res = await agent.propose_patch(_task())
-    assert not res.ok
-    assert "BLACKBOX_API_KEY" in (res.error or "")
-
-
-@respx.mock
-async def test_nested_result_field_extracted():
-    respx.post(f"{BASE}/tasks").mock(
-        return_value=httpx.Response(200, json={"id": "t3"})
-    )
-    respx.get(f"{BASE}/tasks/t3").mock(
+async def test_completion_success_raw_diff():
+    respx.post(f"{BASE}/chat/completions").mock(
         return_value=httpx.Response(
-            200,
-            json={
-                "status": "done",
-                "result": {"output": "--- a/x\n+++ b/x\n@@\n-1\n+2\n"},
-            },
+            200, json=_completion("--- a/x\n+++ b/x\n@@\n-1\n+2\n")
         )
     )
     res = await _agent().propose_patch(_task())
     assert res.ok
     assert "+2" in res.patch
+
+
+@respx.mock
+async def test_api_error_captured():
+    # 400 is not retried by the OpenAI SDK, so this captures cleanly and fast.
+    respx.post(f"{BASE}/chat/completions").mock(
+        return_value=httpx.Response(400, json={"error": {"message": "bad model"}})
+    )
+    res = await _agent().propose_patch(_task())
+    assert not res.ok
+    assert res.error  # an APIStatusError string, not a crash
+
+
+async def test_missing_key_guarded():
+    agent = BlackBoxAgent("blackbox/claude-sonnet", api_key="", api_base=BASE)
+    res = await agent.propose_patch(_task())
+    assert not res.ok
+    assert "BLACKBOX_API_KEY" in (res.error or "")

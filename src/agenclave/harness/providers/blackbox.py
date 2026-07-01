@@ -1,43 +1,38 @@
-# BlackBox Agents API adapter.
+# BlackBox AI provider adapter (OpenAI-compatible).
 #
-# Targets the BlackBox Agents API (`cloud.blackbox.ai/api`) using the documented
-# async task pattern: `POST /tasks` to submit a coding task, then poll
-# `GET /tasks/{id}` until the task reaches a terminal state, and read the patch
-# out of the result.
+# BlackBox exposes an OpenAI-compatible inference API — "all models, one endpoint"
+# (Claude, GPT, Gemini, Grok, DeepSeek, ...). So this adapter reuses the OpenAI
+# Async SDK pointed at BlackBox's base URL with a `bb_` key, exactly mirroring the
+# OpenAI branch of DirectAgent. Every agent in the best-of-N panel is then
+# dispatched THROUGH BlackBox, and the Chairman judges between them.
 #
-# This is **real, config-selectable** code (select via `AGENCLAVE_PROVIDER=blackbox`)
-# but it ships with mocked unit tests rather than live ones: a real `bb_` key is
-# only needed to exercise it against the live service. All network I/O goes through
-# `httpx` and is isolated in small methods so `respx` can mock the two
-# endpoints in tests.
+# Activate it with env (no code change needed):
+#     AGENCLAVE_PROVIDER=blackbox
+#     AGENCLAVE_BLACKBOX_API_KEY=bb_...
+#     AGENCLAVE_BLACKBOX_API_BASE=<from BlackBox API docs; OpenAI-compatible root>
+#     AGENCLAVE_AGENT_MODELS=<comma-separated BlackBox model ids>
 #
-# Note on the wire contract: response field names vary, so result parsing is
-# defensive (it accepts `result` / `output` / `response` / `patch` and a
-# few status spellings). If the live API differs, adjust `_SUBMIT_PATH` /
-# `_extract_*` here, the rest of the harness is unaffected.
+# `propose_patch` never raises for normal failures (network/API errors, empty
+# output): they are captured in `PatchResult.error` so dispatch keeps the other
+# candidates — same contract as DirectAgent.
+#
+# NOTE: confirm the exact base URL + model ids against BlackBox's current API docs.
+# They are config values precisely so wiring a real key needs no code change.
 
 from __future__ import annotations
-
-import asyncio
-from typing import Any
-
-import httpx
 
 from ...config import settings
 from ..interfaces import Agent, PatchResult, Task
 from .base import AGENT_SYSTEM_PROMPT, build_task_prompt, extract_diff
 
-# Terminal status spellings we treat as success / failure.
-_DONE_STATUSES = {"completed", "complete", "done", "succeeded", "success", "finished"}
-_FAILED_STATUSES = {"failed", "error", "errored", "cancelled", "canceled"}
-
 
 class BlackBoxAgent(Agent):
-    # A coding agent backed by the BlackBox Agents API.
+    # A coding agent backed by BlackBox's OpenAI-compatible API.
     #
-    #     Like `DirectAgent`, `propose_patch` never raises for normal failures
-    #     (HTTP errors, timeouts, a failed/blank task), they are captured in
-    #     `PatchResult.error`.
+    #     api_key / api_base default to settings (the env-configured values); they
+    #     are constructor args mainly so tests can inject a mock endpoint. The
+    #     async client is built lazily on first use and cached on the instance, so
+    #     constructing an agent costs nothing and needs no key.
 
     def __init__(
         self,
@@ -45,85 +40,27 @@ class BlackBoxAgent(Agent):
         *,
         api_key: str | None = None,
         api_base: str | None = None,
-        poll_interval: float = 2.0,
-        max_polls: int = 60,
-        timeout: float = 30.0,
+        max_tokens: int = 4096,
     ) -> None:
         self.model = model
-        self.name = f"blackbox:{model}"
+        self.name = f"blackbox:{model}"  # unique within a dispatch; flags the source
         self._api_key = api_key if api_key is not None else settings.blackbox_api_key
         self._api_base = (api_base or settings.blackbox_api_base).rstrip("/")
-        self._poll_interval = poll_interval
-        self._max_polls = max_polls
-        self._timeout = timeout
+        self._max_tokens = max_tokens
+        self._client = None
 
-    # --- HTTP boundary (mock these two in tests) -----------------------------
-    def _headers(self) -> dict[str, str]:
-        return {
-            "Authorization": f"Bearer {self._api_key or ''}",
-            "Content-Type": "application/json",
-        }
+    def _get_client(self):
+        # Build (once) an OpenAI Async client pointed at BlackBox. Only reached
+        # when a key is present (propose_patch guards first), so api_key is set.
+        if self._client is None:
+            import openai  # lazy: avoid import cost / key lookup at module load
 
-    async def _submit_task(self, client: httpx.AsyncClient, task: Task) -> str:
-        # POST the coding task; return the BlackBox task id.
-        payload = {
-            "model": self.model,
-            "system": AGENT_SYSTEM_PROMPT,
-            "prompt": build_task_prompt(task),
-            "metadata": {
-                "instance_id": task.instance_id,
-                "repo": task.repo,
-                "triage_label": task.triage_label,
-            },
-        }
-        resp = await client.post(
-            f"{self._api_base}/tasks", json=payload, headers=self._headers()
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        task_id = data.get("id") or data.get("task_id") or data.get("taskId")
-        if not task_id:
-            raise ValueError(f"submit response had no task id: {data!r}")
-        return str(task_id)
-
-    async def _poll_task(self, client: httpx.AsyncClient, task_id: str) -> dict[str, Any]:
-        # Poll until the task reaches a terminal state; return the final body.
-        for _ in range(self._max_polls):
-            resp = await client.get(
-                f"{self._api_base}/tasks/{task_id}", headers=self._headers()
+            self._client = openai.AsyncOpenAI(
+                api_key=self._api_key or "",
+                base_url=self._api_base,
             )
-            resp.raise_for_status()
-            body = resp.json()
-            status = str(body.get("status", "")).lower()
-            if status in _DONE_STATUSES:
-                return body
-            if status in _FAILED_STATUSES:
-                raise RuntimeError(
-                    f"BlackBox task {task_id} failed: "
-                    f"{body.get('error') or status}"
-                )
-            await asyncio.sleep(self._poll_interval)
-        raise TimeoutError(
-            f"BlackBox task {task_id} did not finish within "
-            f"{self._max_polls} polls"
-        )
+        return self._client
 
-    @staticmethod
-    def _extract_text(body: dict[str, Any]) -> str:
-        # Pull the model's text output from a terminal task body (defensive).
-        for key in ("result", "output", "response", "patch", "content", "text"):
-            val = body.get(key)
-            if isinstance(val, str) and val.strip():
-                return val
-            # Some APIs nest under result: {output: "..."} etc.
-            if isinstance(val, dict):
-                for k2 in ("output", "text", "content", "patch"):
-                    inner = val.get(k2)
-                    if isinstance(inner, str) and inner.strip():
-                        return inner
-        return ""
-
-    # --- Agent interface ------------------------------------------------------
     async def propose_patch(self, task: Task) -> PatchResult:
         if not self._api_key:
             return PatchResult(
@@ -133,10 +70,16 @@ class BlackBoxAgent(Agent):
                 error="BLACKBOX_API_KEY not set; cannot call the BlackBox API",
             )
         try:
-            async with httpx.AsyncClient(timeout=self._timeout) as client:
-                task_id = await self._submit_task(client, task)
-                body = await self._poll_task(client, task_id)
-            text = self._extract_text(body)
+            client = self._get_client()
+            resp = await client.chat.completions.create(
+                model=self.model,
+                max_tokens=self._max_tokens,
+                messages=[
+                    {"role": "system", "content": AGENT_SYSTEM_PROMPT},
+                    {"role": "user", "content": build_task_prompt(task)},
+                ],
+            )
+            text = resp.choices[0].message.content or ""
         except Exception as exc:  # noqa: BLE001 - capture, never crash dispatch
             return PatchResult(
                 agent_name=self.name,

@@ -53,6 +53,20 @@ def _openai_client():
     return openai.AsyncOpenAI(api_key=settings.openai_api_key or None)
 
 
+@functools.lru_cache(maxsize=1)
+def _blackbox_client():
+    # BlackBox is OpenAI-compatible: same SDK, different base_url + key. Used when
+    # provider="blackbox" so the Chairman judge can also route through BlackBox.
+    import openai  # lazy
+
+    from ...config import settings
+
+    return openai.AsyncOpenAI(
+        api_key=settings.blackbox_api_key or "",
+        base_url=settings.blackbox_api_base,
+    )
+
+
 # ------------------------------------------------------------------------------
 # Low-level completions (provider-routed by model name)
 # ------------------------------------------------------------------------------
@@ -62,8 +76,21 @@ async def complete_text(
     user: str,
     *,
     max_tokens: int = 4096,
+    provider: str = "direct",
 ) -> str:
-    # Single text completion. Routes to Anthropic or OpenAI by model name.
+    # Single text completion. provider="blackbox" routes through BlackBox's
+    # OpenAI-compatible endpoint; otherwise routes to Anthropic/OpenAI by name.
+    if provider == "blackbox":
+        client = _blackbox_client()
+        resp = await client.chat.completions.create(
+            model=model,
+            max_tokens=max_tokens,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+        )
+        return resp.choices[0].message.content or ""
     if is_anthropic_model(model):
         client = _anthropic_client()
         resp = await client.messages.create(
@@ -97,12 +124,32 @@ async def complete_json(
     *,
     tool_name: str = "submit",
     max_tokens: int = 4096,
+    provider: str = "direct",
 ) -> dict[str, Any]:
     # Completion constrained to a JSON object matching `schema`.
     #
+    #     provider="blackbox": OpenAI JSON mode against BlackBox's endpoint (the
+    #     schema is embedded in the prompt). Otherwise routed by model name —
     #     Anthropic: a single forced tool whose `input_schema` is `schema`, the
     #     model must call it, and we return the validated tool input. OpenAI: JSON
     #     response format, with the schema embedded in the prompt, then `json.loads`.
+    if provider == "blackbox":
+        client = _blackbox_client()
+        user_with_schema = (
+            f"{user}\n\nRespond with a JSON object matching this schema:\n"
+            f"{json.dumps(schema)}"
+        )
+        resp = await client.chat.completions.create(
+            model=model,
+            max_tokens=max_tokens,
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user_with_schema},
+            ],
+        )
+        return json.loads(resp.choices[0].message.content or "{}")
+
     if is_anthropic_model(model):
         client = _anthropic_client()
         resp = await client.messages.create(

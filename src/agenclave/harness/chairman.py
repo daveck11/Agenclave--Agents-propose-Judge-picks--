@@ -7,10 +7,12 @@
 # `complete_json` (forced tool use on Claude), so parsing never guesses.
 #
 # The judge model is configurable (`AGENCLAVE_CHAIRMAN_MODEL`, default
-# `claude-opus-4-8`) and is provider-routed by name, exactly like the agents.
+# `claude-opus-4-8`). It runs through the configured provider, exactly like the
+# agents: provider="blackbox" sends the judge call through BlackBox's API too.
 
 from __future__ import annotations
 
+from ..config import settings
 from .interfaces import ChairmanDecision, PatchResult, Task
 from .providers.direct import complete_json
 
@@ -113,6 +115,7 @@ class Chairman:
             DECISION_SCHEMA,
             tool_name="submit_decision",
             max_tokens=self._max_tokens,
+            provider=settings.provider,
         )
 
         valid_names = {c.agent_name for c in usable}
