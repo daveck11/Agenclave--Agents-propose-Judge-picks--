@@ -35,6 +35,12 @@ _PRICE_PER_M = {
     "claude-haiku-4-5": (1.0, 5.0),
     "gpt-4o-mini": (0.15, 0.60),
     "gpt-4o": (2.5, 10.0),
+    # BlackBox-routed model ids (same per-1M rates as the underlying models).
+    "blackboxai/anthropic/claude-opus-4.7": (5.0, 25.0),
+    "blackboxai/anthropic/claude-sonnet-4.6": (3.0, 15.0),
+    "blackboxai/openai/gpt-5.4": (2.5, 15.0),
+    "blackboxai/google/gemini-3.1-flash-lite": (0.25, 1.5),
+    "blackboxai/deepseek/deepseek-v4-pro": (0.43, 0.87),
 }
 _EST_INPUT_TOKENS = 2500
 _EST_OUTPUT_TOKENS = 1200
@@ -198,6 +204,25 @@ def latest_run() -> dict:
     except (OSError, json.JSONDecodeError) as exc:
         logger.exception("failed to read chairman_eval.json")
         raise HTTPException(status_code=500, detail="could not read run results") from exc
+
+
+@router.get("/resolve-rate")
+def resolve_rate() -> dict:
+    # Serve the SWE-bench resolve rate measured offline by scripts/grade_swebench.py
+    # (the official harness, in Docker, on the author's machine). The app only
+    # *displays* this committed number — opening the link never runs Docker. Returns
+    # 404 until a real grading has been recorded, so the UI never shows a fake score.
+    path = RESULTS_DIR / "resolve_rate.json"
+    if not path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="no resolve rate recorded yet; run scripts/grade_swebench.py with Docker",
+        )
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        logger.exception("failed to read resolve_rate.json")
+        raise HTTPException(status_code=500, detail="could not read resolve rate") from exc
 
 
 @router.get("/runs/{run_id}", response_model=RunOut)

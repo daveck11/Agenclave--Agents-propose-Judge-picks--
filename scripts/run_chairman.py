@@ -51,6 +51,12 @@ _PRICE_PER_M = {
     "claude-haiku-4-5": (1.0, 5.0),
     "gpt-4o-mini": (0.15, 0.60),
     "gpt-4o": (2.5, 10.0),
+    # BlackBox-routed model ids (same per-1M rates as the underlying models).
+    "blackboxai/anthropic/claude-opus-4.7": (5.0, 25.0),
+    "blackboxai/anthropic/claude-sonnet-4.6": (3.0, 15.0),
+    "blackboxai/openai/gpt-5.4": (2.5, 15.0),
+    "blackboxai/google/gemini-3.1-flash-lite": (0.25, 1.5),
+    "blackboxai/deepseek/deepseek-v4-pro": (0.43, 0.87),
 }
 # Coarse per-call token assumptions for the estimate (issue in, diff out).
 _EST_INPUT_TOKENS = 2500

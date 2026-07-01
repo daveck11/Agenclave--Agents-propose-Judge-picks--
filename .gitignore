@@ -34,6 +34,11 @@ data/*.db*
 # Results: keep committed metrics JSON, ignore large/heavy artifacts
 results/*.npy
 
+# SWE-bench harness output (reproducible from preds via scripts/grade_swebench.py).
+# The curated results/resolve_rate.json IS committed; raw per-run reports + logs are not.
+/logs/
+/agenclave-*.json
+
 # Node / frontend
 node_modules/
 frontend/dist/
