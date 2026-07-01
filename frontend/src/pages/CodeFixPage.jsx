@@ -3,18 +3,18 @@ import { post } from '../api'
 import { useAuth } from '../auth/AuthContext'
 import { useIssue } from '../context/IssueContext'
 import RunResult from '../components/RunResult'
+import ResolveRate from '../components/ResolveRate'
 
 const EST_COST = '~$0.07'
 
 const EXAMPLES = [
   {
     name: 'Bug (passes gate)',
-    title: 'TypeError: RST.__init__() got an unexpected keyword argument header_rows',
+    title: 'App crashes on startup with NullPointerException after upgrade',
     body:
-      'Writing a table in RST format with header_rows raises TypeError: ' +
-      'RST.__init__() got an unexpected keyword argument "header_rows". The RST ' +
-      'writer should accept and forward header_rows to its FixedWidth parent. ' +
-      'This worked before and is a regression.',
+      'Since updating to version 2.3 the application crashes immediately on launch ' +
+      'with a NullPointerException. The stack trace points to ConfigLoader.init(). ' +
+      'Rolling back to 2.2 fixes it. Happens on every machine we tried — a clear regression.',
   },
   {
     name: 'Feature (filtered)',
@@ -72,6 +72,8 @@ export default function CodeFixPage() {
         Stage 1 triages the issue and gates Stage 2. Only a bug is dispatched to
         the best-of-N agents.
       </p>
+
+      <ResolveRate />
 
       <div className="examples">
         <span className="examples-label">Examples:</span>

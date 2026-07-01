@@ -1328,8 +1328,98 @@ textarea:focus {
   font-size: 14px;
 }
 
+/* ===== About / concept map ===== */
+.about-flow {
+  margin: 6px 0 26px;
+}
+
+.cmp {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.cmp-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+}
+
+.cmp-row > div {
+  background: var(--card-bg);
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.cmp-head > div {
+  background: var(--chip-bg);
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.cmp-ag {
+  color: var(--accent-text) !important;
+}
+
+/* ===== Resolve rate (SWE-bench) ===== */
+.resolve {
+  margin: 22px 0 6px;
+}
+
+.resolve-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.resolve-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 15px 17px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #fbfaff 0%, #f5f4fb 100%);
+}
+
+.resolve-card.winner {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+.resolve-num {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--accent-text);
+  font-family: var(--mono);
+}
+
+.resolve-name {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.resolve-note {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 560px) {
+  .cmp-row {
+    grid-template-columns: 1fr;
+  }
+  .cmp-head {
+    display: none;
+  }
   .hero-top {
     flex-direction: column;
     align-items: flex-start;

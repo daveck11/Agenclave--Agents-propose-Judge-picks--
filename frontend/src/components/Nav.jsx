@@ -4,6 +4,7 @@ const LINKS = [
   { to: '/', label: 'Triage', end: true },
   { to: '/code-fix', label: 'Code-fix' },
   { to: '/workspace', label: 'Workspace' },
+  { to: '/about', label: 'About' },
 ]
 
 export default function Nav() {

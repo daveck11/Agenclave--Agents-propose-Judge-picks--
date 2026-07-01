@@ -7,6 +7,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import TriagePage from './pages/TriagePage'
 import CodeFixPage from './pages/CodeFixPage'
 import WorkspacePage from './pages/WorkspacePage'
+import AboutPage from './pages/AboutPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 
@@ -73,6 +74,7 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="/about" element={<AboutPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route
