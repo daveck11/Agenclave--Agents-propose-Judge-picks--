@@ -44,7 +44,7 @@ export default function App() {
           <div className="hero-top">
             <Link to="/" className="brand">
               <span className="logo">◆</span>
-              <span className="wordmark">Agenclave</span>
+              <span className="wordmark">BLACKBOXAI<span className="wm-sub"> Agenclave</span></span>
             </Link>
             <div className="hero-right">
               <span
@@ -92,7 +92,7 @@ export default function App() {
           </Routes>
         </main>
 
-        <footer className="foot">Agenclave · MIT licensed</footer>
+        <footer className="foot">BLACKBOXAI Agenclave · MIT licensed</footer>
       </div>
     </div>
   )

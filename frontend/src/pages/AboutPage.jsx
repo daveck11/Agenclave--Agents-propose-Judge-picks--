@@ -26,7 +26,7 @@ export default function AboutPage() {
   return (
     <>
       <p className="subtitle">
-        Agenclave is a <strong>verification-backed trust layer for multi-agent coding</strong>. As AI
+        BLACKBOXAI Agenclave is a <strong>verification-backed trust layer for multi-agent coding</strong>. As AI
         agents outpace human review, the bottleneck stops being generating code and becomes trusting
         it. Agenclave answers one question with evidence: <strong>which of N agent outputs do I
         trust?</strong>
@@ -48,7 +48,7 @@ export default function AboutPage() {
       <div className="cmp">
         <div className="cmp-row cmp-head">
           <div>BlackBox AI</div>
-          <div>Agenclave (this project)</div>
+          <div>BLACKBOXAI Agenclave (this project)</div>
         </div>
         {CONCEPT_MAP.map((row, i) => (
           <div className="cmp-row" key={i}>
