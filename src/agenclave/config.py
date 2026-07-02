@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     provider: str = "direct"
     agent_models: str = "claude-sonnet-4-6,gpt-4o-mini"
     chairman_model: str = "claude-opus-4-8"
+    # Trust-scored routing: dispatch only the top-`route_k` models for a task's
+    # category (Thompson sampling over per-model reliability). route() returns
+    # min(route_k, len(panel)), so a small panel is used whole.
+    route_k: int = 3
 
     # --- Keys (Stage 2 only; read from the conventional names, prefix optional) ---
     anthropic_api_key: str | None = Field(

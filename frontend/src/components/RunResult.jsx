@@ -31,6 +31,56 @@ function pct(x) {
   return typeof x === 'number' ? `${(x * 100).toFixed(1)}%` : '-'
 }
 
+// Trust-scored routing panel: which models were picked for this task, and why.
+// Reads the read-only `routing` block the API attaches when the gate passes.
+function Routing({ routing }) {
+  const considered = routing.considered || []
+  const selected = new Set(routing.selected || [])
+  const noHistory = considered.length > 0 && considered.every((c) => !c.total)
+
+  return (
+    <div className="routing">
+      <div className="stage-label">Trust-scored routing (top-{routing.k})</div>
+      <p className="routing-reason">{routing.reason}</p>
+      <div className="routing-table">
+        <div className="routing-row routing-head">
+          <span>model</span>
+          <span>reliability</span>
+          <span>sample</span>
+          <span></span>
+        </div>
+        {considered.map((c) => {
+          const picked = selected.has(c.model)
+          return (
+            <div
+              className={`routing-row${picked ? ' routed' : ''}`}
+              key={c.model}
+            >
+              <span className="routing-model">{c.model}</span>
+              <span className="routing-num">
+                {pct(c.estimate)} <span className="routing-n">(n={c.total})</span>
+              </span>
+              <span className="routing-num">
+                {typeof c.sample === 'number' ? c.sample.toFixed(3) : '-'}
+              </span>
+              <span>
+                {picked && <span className="badge-win">routed</span>}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+      {noHistory && (
+        <div className="honesty">
+          No verified history yet — routing is <strong>exploring</strong>. The web
+          demo judges with the Chairman and does not verify patches, so it does not
+          update trust. Reliability is learned only from in-loop verification runs.
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function RunResult({ result }) {
   const r = result
   if (!r) return null
@@ -79,6 +129,10 @@ export default function RunResult({ result }) {
           Harness skipped. <strong>$0.00</strong> spent. Only bugs reach the
           best-of-N stage.
         </div>
+      )}
+
+      {gatePassed && r.routing && (
+        <Routing routing={r.routing} />
       )}
 
       {gatePassed && !r.ran_live && r.cost && (

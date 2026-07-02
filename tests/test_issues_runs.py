@@ -115,6 +115,15 @@ def test_authenticated_run_persists_and_lists(client, monkeypatch):
     assert "run_id" in body
     run_id = body["run_id"]
 
+    # Trust-scored routing is attached, selects a subset of the panel, and cost is
+    # projected over the routed subset (+1 for the chairman).
+    from agenclave.config import settings
+
+    routing = body["routing"]
+    assert routing is not None and routing["reason"]
+    assert set(routing["selected"]) <= set(settings.agent_model_list)
+    assert body["cost"]["calls"] == len(routing["selected"]) + 1
+
     listed = client.get("/runs", headers=alice).json()
     assert [r["id"] for r in listed] == [run_id]
     assert listed[0]["ran_live"] is True
@@ -137,6 +146,35 @@ def test_anonymous_run_works_without_persisting(client, monkeypatch):
 
     alice = _auth(client, "alice@example.com")
     assert client.get("/runs", headers=alice).json() == []
+
+
+def test_dry_run_shows_routing_projection_without_spending(client, monkeypatch):
+    # A dry run (live=False) still routes and shows the projected subset — the
+    # transparency payoff — but dispatches nothing and spends $0.
+    _patch_stage2(monkeypatch)
+    resp = client.post("/runs", json={"title": "Crash", "body": "boom", "live": False})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["ran_live"] is False
+    assert body["cost"]["spent_usd"] == 0.0
+    routing = body["routing"]
+    assert routing is not None and routing["reason"]
+    assert routing["selected"] and body["candidates"] == []
+
+
+def test_web_run_never_writes_reliability(client, monkeypatch):
+    # Guardrail: the web path has no in-loop verification, so it must never record
+    # outcomes into reliability. If it tried, this raising stub would surface it.
+    _patch_stage2(monkeypatch)
+    from agenclave.harness import reliability as rel_mod
+
+    def _boom(*a, **k):  # pragma: no cover - only fires on a violation
+        raise AssertionError("web run must not write reliability (read-only prior)")
+
+    monkeypatch.setattr(rel_mod, "record_outcome", _boom)
+    resp = client.post("/runs", json={"title": "Crash", "body": "boom", "live": True})
+    assert resp.status_code == 200
+    assert resp.json()["ran_live"] is True
 
 
 def test_run_owner_isolation(client, monkeypatch):

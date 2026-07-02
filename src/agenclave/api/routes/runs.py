@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...classifier.predict import ModelsNotTrained, predict_triage
 from ...config import RESULTS_DIR, settings
-from ...harness import Chairman, Task, build_agents, dispatch
+from ...harness import Chairman, Task, build_agents, dispatch, route
 from ..auth import get_current_user, get_optional_user
 from ..db import get_session
 from ..models import Run, User
@@ -74,7 +74,18 @@ async def run_pipeline(
     label = tri["label"]
     passed = label == "bug"
     models = settings.agent_model_list
-    projection = sum(_cost_per_call(m) for m in models) + _cost_per_call(
+
+    # Trust-scored routing (Round 4): when the gate passes, pick the trusted subset
+    # of the panel for this category instead of always dispatching all of it. This
+    # is a READ-ONLY prior over per-model reliability — the web run judges with the
+    # Chairman LLM and has no repo checkout / no verify_patch, so it produces no
+    # in-loop verification signal and deliberately does NOT call record_outcome
+    # (that would fabricate or leak the eval signal). Verification, when it exists,
+    # remains the only thing that updates trust.
+    routing = route(label, models, settings.route_k) if passed else None
+    run_models = routing.selected if routing else models
+
+    projection = sum(_cost_per_call(m) for m in run_models) + _cost_per_call(
         settings.chairman_model
     )
 
@@ -92,6 +103,16 @@ async def run_pipeline(
                 else f"Not a bug ({label}). Harness skipped."
             ),
         },
+        "routing": (
+            {
+                "selected": routing.selected,
+                "considered": routing.considered,
+                "reason": routing.reason,
+                "k": settings.route_k,
+            }
+            if routing
+            else None
+        ),
         "config": {
             "provider": settings.provider,
             "agent_models": models,
@@ -99,7 +120,7 @@ async def run_pipeline(
         },
         "cost": {
             "projection_usd": round(projection, 4),
-            "calls": len(models) + 1,
+            "calls": len(run_models) + 1,
             "spent_usd": 0.0,
         },
         "ran_live": False,
@@ -120,7 +141,8 @@ async def run_pipeline(
             triage_severity=tri.get("severity"),
         )
         try:
-            agents = build_agents(settings.provider, models)
+            # Only the routed (trusted) subset is dispatched — not the full panel.
+            agents = build_agents(settings.provider, run_models)
             chairman = Chairman(settings.chairman_model)
             candidates = await dispatch(task, agents)
             decision = await chairman.judge(task, candidates)
