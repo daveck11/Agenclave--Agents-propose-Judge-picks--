@@ -27,7 +27,7 @@ logger = logging.getLogger("agenclave.api")
 
 router = APIRouter(tags=["runs"])
 
-# Rough $/1M tokens (input, output) — same table as scripts/run_chairman.py, so
+# Rough $/1M tokens (input, output) - same table as scripts/run_chairman.py, so
 # the web cost projection matches the CLI.
 _PRICE_PER_M = {
     "claude-opus-4-8": (5.0, 25.0),
@@ -77,7 +77,7 @@ async def run_pipeline(
 
     # Trust-scored routing (Round 4): when the gate passes, pick the trusted subset
     # of the panel for this category instead of always dispatching all of it. This
-    # is a READ-ONLY prior over per-model reliability — the web run judges with the
+    # is a READ-ONLY prior over per-model reliability - the web run judges with the
     # Chairman LLM and has no repo checkout / no verify_patch, so it produces no
     # in-loop verification signal and deliberately does NOT call record_outcome
     # (that would fabricate or leak the eval signal). Verification, when it exists,
@@ -135,13 +135,13 @@ async def run_pipeline(
         statement = f"{req.title}\n\n{req.body}".strip()
         task = Task(
             instance_id="web-run",
-            repo="(web demo — issue text only, no repo checkout)",
+            repo="(web demo - issue text only, no repo checkout)",
             problem_statement=statement,
             triage_label=label,
             triage_severity=tri.get("severity"),
         )
         try:
-            # Only the routed (trusted) subset is dispatched — not the full panel.
+            # Only the routed (trusted) subset is dispatched - not the full panel.
             agents = build_agents(settings.provider, run_models)
             chairman = Chairman(settings.chairman_model)
             candidates = await dispatch(task, agents)
@@ -170,11 +170,6 @@ async def run_pipeline(
                     "synthesized": bool(decision.synthesized_patch),
                 },
                 "selected_patch": selected_patch,
-                "resolve_rate_note": (
-                    "Patches come from the issue text only, without a repo checkout. "
-                    "The CLI runner targets real SWE-bench instances for benchmarked "
-                    "results."
-                ),
             }
         )
         out["cost"]["spent_usd"] = round(projection, 4)
@@ -232,7 +227,7 @@ def latest_run() -> dict:
 def resolve_rate() -> dict:
     # Serve the SWE-bench resolve rate measured offline by scripts/grade_swebench.py
     # (the official harness, in Docker, on the author's machine). The app only
-    # *displays* this committed number — opening the link never runs Docker. Returns
+    # *displays* this committed number - opening the link never runs Docker. Returns
     # 404 until a real grading has been recorded, so the UI never shows a fake score.
     path = RESULTS_DIR / "resolve_rate.json"
     if not path.exists():

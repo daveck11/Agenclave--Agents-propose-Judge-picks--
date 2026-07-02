@@ -72,7 +72,7 @@ function Routing({ routing }) {
       </div>
       {noHistory && (
         <div className="honesty">
-          No verified history yet — routing is <strong>exploring</strong>. The web
+          No verified history yet - routing is <strong>exploring</strong>. The web
           demo judges with the Chairman and does not verify patches, so it does not
           update trust. Reliability is learned only from in-loop verification runs.
         </div>
@@ -208,8 +208,6 @@ export default function RunResult({ result }) {
             )}
             <p className="pick-rationale">{decision.rationale}</p>
           </div>
-
-          {r.resolve_rate_note && <div className="honesty">{r.resolve_rate_note}</div>}
         </>
       )}
     </section>
