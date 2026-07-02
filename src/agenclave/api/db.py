@@ -28,7 +28,14 @@ class Base(DeclarativeBase):
 # engine creation never trips over a missing path (tolerant of it pre-existing).
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-engine = create_async_engine(settings.database_url, future=True)
+# Neon / managed Postgres require SSL; asyncpg takes it via connect_args (not a URL
+# query param). SQLite ignores it.
+_connect_args = (
+    {"ssl": True} if settings.database_url.startswith("postgresql+asyncpg://") else {}
+)
+engine = create_async_engine(
+    settings.database_url, future=True, connect_args=_connect_args
+)
 async_session_factory = async_sessionmaker(engine, expire_on_commit=False)
 
 

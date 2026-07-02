@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Repo-root-relative paths so scripts work regardless of CWD.
@@ -65,6 +65,21 @@ class Settings(BaseSettings):
     @property
     def agent_model_list(self) -> list[str]:
         return [m.strip() for m in self.agent_models.split(",") if m.strip()]
+
+    @field_validator("database_url")
+    @classmethod
+    def _normalize_db_url(cls, v: str) -> str:
+        # Accept a plain Postgres URL as-is (e.g. Neon:
+        # postgresql://user:pass@host/db?sslmode=require) and coerce it to the async
+        # driver, dropping libpq-only query params asyncpg rejects. SSL for Postgres
+        # is enabled via connect_args in api/db.py.
+        for prefix in ("postgresql://", "postgres://"):
+            if v.startswith(prefix):
+                v = "postgresql+asyncpg://" + v[len(prefix):]
+                break
+        if v.startswith("postgresql+asyncpg://") and "?" in v:
+            v = v.split("?", 1)[0]
+        return v
 
 
 settings = Settings()
