@@ -45,6 +45,37 @@ TASKS = [
             "Fix the bug so addition works correctly."
         ),
     },
+    {
+        "id": "last-n-off-by-one",
+        "category": "bug",
+        "repo": ROOT / "tests" / "fixtures" / "off_by_one" / "repo",
+        "test_cmd": [sys.executable, "-m", "pytest", "check_seq.py", "-q"],
+        "problem_statement": (
+            "last_n(items, n) in seq.py should return the last n items, but it is "
+            "off by one (it returns n-1 items). Fix it."
+        ),
+    },
+    {
+        "id": "mutable-default",
+        "category": "bug",
+        "repo": ROOT / "tests" / "fixtures" / "mutable_default" / "repo",
+        "test_cmd": [sys.executable, "-m", "pytest", "check_acc.py", "-q"],
+        "problem_statement": (
+            "collect(value, into=[]) in acc.py reuses the same list across calls "
+            "(mutable default argument bug); a call with no bucket should start from "
+            "an empty list. Fix it."
+        ),
+    },
+    {
+        "id": "factorial-base",
+        "category": "bug",
+        "repo": ROOT / "tests" / "fixtures" / "recursion" / "repo",
+        "test_cmd": [sys.executable, "-m", "pytest", "check_mathx.py", "-q"],
+        "problem_statement": (
+            "factorial(n) in mathx.py infinitely recurses for n=0 (only n==1 is a "
+            "base case). factorial(0) should return 1. Fix it."
+        ),
+    },
 ]
 
 
