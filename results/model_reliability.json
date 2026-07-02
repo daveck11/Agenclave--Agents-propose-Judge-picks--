@@ -1,0 +1,18 @@
+{
+  "blackboxai/anthropic/claude-nemotron|bug": {
+    "passed": 0,
+    "total": 4
+  },
+  "blackboxai/deepseek/deepseek-v4-pro|bug": {
+    "passed": 3,
+    "total": 4
+  },
+  "blackboxai/google/gemini-3.1-flash-lite|bug": {
+    "passed": 2,
+    "total": 4
+  },
+  "blackboxai/openai/gpt-5.4|bug": {
+    "passed": 3,
+    "total": 4
+  }
+}
