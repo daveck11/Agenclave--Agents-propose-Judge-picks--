@@ -18,6 +18,18 @@ from pathlib import Path
 
 _SUMMARY_RE = re.compile(r"(\d+) (passed|failed|errors?)")
 
+# git-apply passes, exact first then increasingly lenient: tolerate wrong hunk line
+# numbers (--recount), whitespace (--ignore-whitespace), thinner context (-C1), and a
+# missing a/ b/ prefix (-p0). Recovers correct fixes with slightly-off diff metadata
+# without misapplying — the change's content context still has to match.
+_APPLY_PASSES = [
+    [],
+    ["--recount"],
+    ["--recount", "--ignore-whitespace"],
+    ["--recount", "--ignore-whitespace", "-C1"],
+    ["-p0", "--recount", "--ignore-whitespace"],
+]
+
 
 @dataclass
 class VerifyResult:
@@ -72,14 +84,15 @@ def _apply(patch: str, sandbox: Path) -> tuple[bool, str]:
             except (UnicodeDecodeError, OSError):
                 pass  # binary or unreadable — let git apply decide
     subprocess.run(["git", "init", "-q"], cwd=sandbox, capture_output=True)
+    patch_bytes = patch.encode("utf-8")
     last = ""
-    for extra in ([], ["-p1"]):
+    for extra in _APPLY_PASSES:
         proc = subprocess.run(
             ["git", "apply", "--whitespace=nowarn", *extra, "-"],
-            cwd=sandbox, input=_norm_lf(patch).encode("utf-8"), capture_output=True,
+            cwd=sandbox, input=patch_bytes, capture_output=True,
         )
         if proc.returncode == 0:
-            return True, "patch applied"
+            return True, f"applied ({' '.join(extra) or 'exact'})"
         last = (proc.stderr or proc.stdout).decode("utf-8", "replace")
     return False, last.strip()
 
