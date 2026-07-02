@@ -38,7 +38,7 @@ function pct(x) {
 export default function TriagePage() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { current, patchIssue, setIssue } = useIssue()
+  const { current, patchIssue, setIssue, clearIssue } = useIssue()
 
   const title = current.title
   const body = current.body
@@ -53,6 +53,13 @@ export default function TriagePage() {
 
   function loadExample(ex) {
     patchIssue({ title: ex.title, body: ex.body, triage: null })
+    setResult(null)
+    setError('')
+    setSaved(false)
+  }
+
+  function clearAll() {
+    clearIssue()
     setResult(null)
     setError('')
     setSaved(false)
@@ -124,6 +131,9 @@ export default function TriagePage() {
             {ex.name}
           </button>
         ))}
+        <button type="button" className="example-btn" onClick={clearAll}>
+          Clear
+        </button>
       </div>
 
       <form onSubmit={triage}>
