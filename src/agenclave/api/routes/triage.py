@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException
 
 from ...classifier.predict import ModelsNotTrained, predict_triage
 from ...classifier.recommend import recommend
+from ...config import settings
 from ..schemas import Recommendation, TriageRequest, TriageResponse
 
 logger = logging.getLogger("agenclave.api")
@@ -31,7 +32,13 @@ def health() -> dict:
     except Exception:  # noqa: BLE001 - health must never raise.
         logger.exception("health check: unexpected error during model probe")
         models_loaded = False
-    return {"status": "ok", "models_loaded": models_loaded}
+    # Whether live Stage 2 dispatch can work (a provider key is configured). The UI
+    # hides the Live toggle when this is false (e.g. a public demo with no keys).
+    if settings.provider == "blackbox":
+        live_enabled = bool(settings.blackbox_api_key)
+    else:
+        live_enabled = bool(settings.anthropic_api_key or settings.openai_api_key)
+    return {"status": "ok", "models_loaded": models_loaded, "live_enabled": live_enabled}
 
 
 @router.post("/triage", response_model=TriageResponse)

@@ -37,11 +37,16 @@ class RouteDecision:
     reason: str = ""  # human explanation - the transparency payoff
 
 
+def _short(model: str) -> str:
+    # Display a model id as just the model name in caps (drop the provider path).
+    return (model.split("/")[-1] if model else "").upper()
+
+
 def _phrase(considered: list[dict], selected: list[str], category: str | None) -> str:
     # A plain-language justification naming who was picked and hinting at why.
     cat = category or "uncategorised"
-    picked = ", ".join(selected) if selected else "(none)"
-    unproven = [c["model"] for c in considered if c["total"] == 0]
+    picked = ", ".join(_short(s) for s in selected) if selected else "(none)"
+    unproven = [_short(c["model"]) for c in considered if c["total"] == 0]
     tail = ""
     if unproven:
         tail = (

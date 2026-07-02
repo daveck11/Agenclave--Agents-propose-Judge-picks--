@@ -1,10 +1,10 @@
-import { useState } from 'react'
-import { post } from '../api'
+import { useEffect, useState } from 'react'
+import { get, post } from '../api'
 import { useAuth } from '../auth/AuthContext'
 import { useIssue } from '../context/IssueContext'
 import RunResult from '../components/RunResult'
 
-const EST_COST = '~$0.07'
+const EST_COST = '~$0.03-0.07'
 
 const EXAMPLES = [
   {
@@ -26,7 +26,20 @@ const EXAMPLES = [
 
 export default function CodeFixPage() {
   const { user } = useAuth()
-  const { current, patchIssue } = useIssue()
+  const { current, patchIssue, clearIssue } = useIssue()
+
+  // Whether the backend can dispatch live (a provider key is configured). Hides the
+  // Live toggle on a keyless public demo.
+  const [liveEnabled, setLiveEnabled] = useState(true)
+  useEffect(() => {
+    let alive = true
+    get('/health', { auth: false })
+      .then((h) => alive && setLiveEnabled(h.live_enabled !== false))
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [])
 
   // Prefill from the handed-off issue; the fields stay editable.
   const title = current.title
@@ -43,6 +56,13 @@ export default function CodeFixPage() {
     patchIssue({ title: ex.title, body: ex.body })
     setResult(null)
     setError('')
+  }
+
+  function clearAll() {
+    clearIssue()
+    setResult(null)
+    setError('')
+    setStatus('idle')
   }
 
   async function run() {
@@ -84,6 +104,9 @@ export default function CodeFixPage() {
             {ex.name}
           </button>
         ))}
+        <button type="button" className="example-btn" onClick={clearAll}>
+          Clear
+        </button>
       </div>
 
       <label htmlFor="s2title">Issue title</label>
@@ -104,25 +127,31 @@ export default function CodeFixPage() {
       />
 
       <div className="run-bar">
-        <label className={`switch${live ? ' on' : ''}`}>
-          <input
-            type="checkbox"
-            checked={live}
-            onChange={(e) => setLive(e.target.checked)}
-          />
-          <span className="track">
-            <span className="knob" />
+        {liveEnabled ? (
+          <label className={`switch${live ? ' on' : ''}`}>
+            <input
+              type="checkbox"
+              checked={live}
+              onChange={(e) => setLive(e.target.checked)}
+            />
+            <span className="track">
+              <span className="knob" />
+            </span>
+            <span className="switch-text">
+              {live ? (
+                <>
+                  Live run, spends <strong>{EST_COST}</strong> in Blackbox credits
+                </>
+              ) : (
+                <>Dry run, no API calls</>
+              )}
+            </span>
+          </label>
+        ) : (
+          <span className="switch-text muted">
+            Live runs are disabled on this demo (no provider key). Dry run only.
           </span>
-          <span className="switch-text">
-            {live ? (
-              <>
-                Live run, spends <strong>{EST_COST}</strong>
-              </>
-            ) : (
-              <>Dry run, no API calls</>
-            )}
-          </span>
-        </label>
+        )}
         <button type="button" className="submit" onClick={run} disabled={!canRun}>
           {running ? (live ? 'Dispatching' : 'Running') : 'Run pipeline'}
         </button>

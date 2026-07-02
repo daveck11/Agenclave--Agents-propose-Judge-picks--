@@ -31,6 +31,13 @@ function pct(x) {
   return typeof x === 'number' ? `${(x * 100).toFixed(1)}%` : '-'
 }
 
+// Display a model id as just the model name in caps:
+// blackbox:blackboxai/openai/gpt-5.4 -> GPT-5.4
+function modelName(id) {
+  if (!id) return ''
+  return String(id).replace(/^blackbox:/, '').split('/').pop().toUpperCase()
+}
+
 // Trust-scored routing panel: which models were picked for this task, and why.
 // Reads the read-only `routing` block the API attaches when the gate passes.
 function Routing({ routing }) {
@@ -56,7 +63,7 @@ function Routing({ routing }) {
               className={`routing-row${picked ? ' routed' : ''}`}
               key={c.model}
             >
-              <span className="routing-model">{c.model}</span>
+              <span className="routing-model">{modelName(c.model)}</span>
               <span className="routing-num">
                 {pct(c.estimate)} <span className="routing-n">(n={c.total})</span>
               </span>
@@ -150,7 +157,7 @@ export default function RunResult({ result }) {
             <span className="flow-arrow">→</span>
             <span className="flow-node">{candidates.length} agents</span>
             <span className="flow-arrow">→</span>
-            <span className="flow-node accent">chairman: {winner}</span>
+            <span className="flow-node accent">chairman: {modelName(winner)}</span>
             {r.cost && (
               <span className="spent-pill">
                 spent ${(r.cost.spent_usd ?? 0).toFixed(4)}
@@ -171,7 +178,7 @@ export default function RunResult({ result }) {
                   className={`agent-card${isWinner ? ' winner' : ''}`}
                 >
                   <div className="agent-head">
-                    <span className="agent-model">{c.agent}</span>
+                    <span className="agent-model">{modelName(c.agent)}</span>
                     <span className="agent-tags">
                       {rank >= 0 && <span className="rank-pill">#{rank + 1}</span>}
                       {isWinner && <span className="badge-win">selected</span>}
@@ -186,11 +193,11 @@ export default function RunResult({ result }) {
           </div>
 
           <div className="stage-label">
-            Chairman decision ({r.config?.chairman_model})
+            Chairman decision ({modelName(r.config?.chairman_model)})
           </div>
           <div className="chairman-pick">
             <div className="pick-head">
-              Selected <code>{winner}</code>
+              Selected <code>{modelName(winner)}</code>
               {decision.synthesized && (
                 <span className="synth-pill">synthesised</span>
               )}
@@ -201,7 +208,7 @@ export default function RunResult({ result }) {
                 {ranking.map((m, i) => (
                   <span key={m}>
                     {i > 0 && <span className="rank-sep"> ▸ </span>}
-                    <span className={m === winner ? 'rank-win' : ''}>{m}</span>
+                    <span className={m === winner ? 'rank-win' : ''}>{modelName(m)}</span>
                   </span>
                 ))}
               </div>
