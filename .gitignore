@@ -23,6 +23,7 @@ data/*.csv
 data/*.parquet
 data/*.jsonl
 models/*.joblib
+!models/type_clf.joblib
 models/*.pkl
 models/*.bin
 .cache/
