@@ -101,7 +101,7 @@ def _patch_stage2(monkeypatch):
     monkeypatch.setattr(runs_mod, "Chairman", _FakeChairman)
 
 
-def test_authenticated_run_persists_and_lists(client, monkeypatch):
+def test_run_save_list_and_delete(client, monkeypatch):
     _patch_stage2(monkeypatch)
     alice = _auth(client, "alice@example.com")
 
@@ -112,8 +112,9 @@ def test_authenticated_run_persists_and_lists(client, monkeypatch):
     body = resp.json()
     assert body["ran_live"] is True
     assert body["gate"]["passed"] is True
-    assert "run_id" in body
-    run_id = body["run_id"]
+    # Runs are no longer auto-saved: nothing persists until the user opts in.
+    assert "run_id" not in body
+    assert client.get("/runs", headers=alice).json() == []
 
     # Trust-scored routing is attached, selects a subset of the panel, and cost is
     # projected over the routed subset (+1 for the chairman).
@@ -124,6 +125,15 @@ def test_authenticated_run_persists_and_lists(client, monkeypatch):
     assert set(routing["selected"]) <= set(settings.agent_model_list)
     assert body["cost"]["calls"] == len(routing["selected"]) + 1
 
+    # Explicit save persists the run and returns its id.
+    saved = client.post(
+        "/runs/save",
+        json={"title": "Crash", "body": "boom", "result": body},
+        headers=alice,
+    )
+    assert saved.status_code == 200
+    run_id = saved.json()["run_id"]
+
     listed = client.get("/runs", headers=alice).json()
     assert [r["id"] for r in listed] == [run_id]
     assert listed[0]["ran_live"] is True
@@ -132,6 +142,19 @@ def test_authenticated_run_persists_and_lists(client, monkeypatch):
     one = client.get(f"/runs/{run_id}", headers=alice)
     assert one.status_code == 200
     assert one.json()["result"]["selected_patch"] == "diff"
+
+    # The owner can delete it; afterwards the list is empty.
+    assert client.delete(f"/runs/{run_id}", headers=alice).status_code == 204
+    assert client.get("/runs", headers=alice).json() == []
+
+
+def test_anonymous_cannot_save_run(client):
+    assert (
+        client.post(
+            "/runs/save", json={"title": "x", "body": "y", "result": {}}
+        ).status_code
+        == 401
+    )
 
 
 def test_anonymous_run_works_without_persisting(client, monkeypatch):
@@ -182,10 +205,17 @@ def test_run_owner_isolation(client, monkeypatch):
     alice = _auth(client, "alice@example.com")
     bob = _auth(client, "bob@example.com")
 
-    resp = client.post(
+    run = client.post(
         "/runs", json={"title": "Crash", "body": "boom", "live": False}, headers=alice
+    ).json()
+    saved = client.post(
+        "/runs/save",
+        json={"title": "Crash", "body": "boom", "result": run},
+        headers=alice,
     )
-    run_id = resp.json()["run_id"]
+    run_id = saved.json()["run_id"]
 
+    # Bob can neither see, read, nor delete Alice's run.
     assert client.get("/runs", headers=bob).json() == []
     assert client.get(f"/runs/{run_id}", headers=bob).status_code == 404
+    assert client.delete(f"/runs/{run_id}", headers=bob).status_code == 404

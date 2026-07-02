@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,7 +21,7 @@ from ...harness import Chairman, Task, build_agents, dispatch, route
 from ..auth import get_current_user, get_optional_user
 from ..db import get_session
 from ..models import Run, User
-from ..schemas import RunOut, RunRequest
+from ..schemas import RunOut, RunRequest, RunSaveRequest
 
 logger = logging.getLogger("agenclave.api")
 
@@ -174,22 +174,7 @@ async def run_pipeline(
         )
         out["cost"]["spent_usd"] = round(projection, 4)
 
-    # Persist the run for an authenticated caller (anonymous behaviour unchanged).
-    if user is not None:
-        run = Run(
-            user_id=user.id,
-            issue_id=req.issue_id,
-            title=req.title,
-            body=req.body,
-            gate_passed=passed,
-            ran_live=out["ran_live"],
-            result=out,
-        )
-        session.add(run)
-        await session.commit()
-        await session.refresh(run)
-        out["run_id"] = run.id
-
+    # Runs are NOT auto-saved. The user keeps a run explicitly via POST /runs/save.
     return out
 
 
@@ -253,3 +238,45 @@ async def get_run(
     if run is None or run.user_id != current.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="run not found")
     return run
+
+
+@router.post("/runs/save")
+async def save_run(
+    req: RunSaveRequest,
+    current: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    # Persist a run the user chose to keep (runs are not auto-saved).
+    result = req.result or {}
+    run = Run(
+        user_id=current.id,
+        issue_id=req.issue_id,
+        title=req.title,
+        body=req.body,
+        gate_passed=bool((result.get("gate") or {}).get("passed")),
+        ran_live=bool(result.get("ran_live")),
+        result=result,
+    )
+    session.add(run)
+    await session.commit()
+    await session.refresh(run)
+    return {"run_id": run.id}
+
+
+@router.delete(
+    "/runs/{run_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+)
+async def delete_run(
+    run_id: int,
+    current: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+) -> Response:
+    # Delete one of the caller's runs (404 if not owned).
+    run = await session.get(Run, run_id)
+    if run is None or run.user_id != current.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="run not found")
+    await session.delete(run)
+    await session.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

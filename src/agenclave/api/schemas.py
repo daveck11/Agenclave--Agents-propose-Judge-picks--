@@ -65,6 +65,15 @@ class RunRequest(BaseModel):
         return self
 
 
+class RunSaveRequest(BaseModel):
+    # A completed run the user chose to keep (runs are not auto-persisted).
+
+    title: str = Field("", description="Issue title.")
+    body: str = Field("", description="Issue body.")
+    issue_id: int | None = Field(None, description="Optional saved-issue id.")
+    result: dict = Field(..., description="The run result payload from POST /runs.")
+
+
 class Recommendation(BaseModel):
     # A single suggested next step for a triaged issue.
 

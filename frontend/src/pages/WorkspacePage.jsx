@@ -57,6 +57,11 @@ export default function WorkspacePage() {
     setIssues((list) => list.filter((i) => i.id !== id))
   }
 
+  async function deleteRun(id) {
+    await del(`/runs/${id}`)
+    setRuns((list) => list.filter((r) => r.id !== id))
+  }
+
   return (
     <>
       <p className="subtitle">Your saved issues and best-of-N runs.</p>
@@ -98,7 +103,7 @@ export default function WorkspacePage() {
             ) : (
               <div className="saved-list">
                 {runs.map((run) => (
-                  <RunCard key={run.run_id || run.id} run={run} />
+                  <RunCard key={run.id} run={run} onDelete={deleteRun} />
                 ))}
               </div>
             )}

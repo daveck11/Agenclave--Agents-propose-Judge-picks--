@@ -13,7 +13,7 @@
 
 /* ===== Hero header ===== */
 .hero {
-  color: #ece9f7;
+  color: #ffffff;
   margin-bottom: 18px;
 }
 
@@ -35,7 +35,7 @@
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  filter: drop-shadow(0 2px 8px rgba(168, 85, 247, 0.5));
+  filter: drop-shadow(0 2px 10px rgba(255, 122, 0, 0.45));
 }
 
 .wordmark {
@@ -43,6 +43,11 @@
   font-weight: 800;
   letter-spacing: -0.02em;
   color: #fff;
+}
+
+.wm-sub {
+  color: var(--accent-text);
+  font-weight: 800;
 }
 
 .status {
@@ -55,7 +60,7 @@
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.14);
-  color: #cbc7e0;
+  color: #a3a3a3;
 }
 
 .status .dot {
@@ -83,7 +88,7 @@
   margin: 14px 0 22px;
   font-size: 15px;
   line-height: 1.55;
-  color: #b9b4d6;
+  color: #8a8a8a;
   max-width: 620px;
 }
 
@@ -102,7 +107,7 @@
   border: 1px solid transparent;
   border-bottom: none;
   background: rgba(255, 255, 255, 0.05);
-  color: #cbc7e0;
+  color: #a3a3a3;
   cursor: pointer;
   transition: background 0.18s, color 0.18s, transform 0.1s;
   display: flex;
@@ -194,6 +199,22 @@
   color: var(--accent-text);
 }
 
+/* Refresh/clear icon button: the glyph spins on hover to read as "reset". */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  padding: 6px 11px;
+  font-size: 15px;
+  line-height: 1;
+  transition: border-color 0.15s, background 0.15s, color 0.15s, transform 0.35s;
+}
+
+.icon-btn:hover {
+  transform: rotate(-180deg);
+}
+
 form {
   display: flex;
   flex-direction: column;
@@ -234,16 +255,16 @@ textarea:focus {
   padding: 11px 26px;
   border: none;
   border-radius: 10px;
-  background: var(--accent-grad);
-  color: #fff;
+  background: #ffffff;
+  color: #0a0a0a;
   cursor: pointer;
-  box-shadow: 0 6px 18px rgba(124, 58, 237, 0.35);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
   transition: opacity 0.15s, transform 0.1s, box-shadow 0.15s;
 }
 
 .submit:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 8px 22px rgba(124, 58, 237, 0.45);
+  box-shadow: 0 8px 22px rgba(255, 122, 0, 0.28);
 }
 
 .submit:disabled {
@@ -467,8 +488,8 @@ textarea:focus {
   font-size: 11.5px;
   padding: 3px 9px;
   border-radius: 999px;
-  background: #1f2937;
-  color: #e5e7eb;
+  background: #1a1a1a;
+  color: #d4d4d4;
 }
 
 .label-badge {
@@ -984,7 +1005,7 @@ textarea:focus {
   border: 1px solid transparent;
   border-bottom: none;
   background: rgba(255, 255, 255, 0.05);
-  color: #cbc7e0;
+  color: #a3a3a3;
   transition: background 0.18s, color 0.18s;
 }
 
@@ -1011,7 +1032,7 @@ textarea:focus {
 
 .auth-email {
   font-size: 13px;
-  color: #cbc7e0;
+  color: #a3a3a3;
   max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1027,7 +1048,7 @@ textarea:focus {
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.18);
   background: rgba(255, 255, 255, 0.06);
-  color: #e6e2f5;
+  color: #e5e5e5;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
 }
@@ -1044,7 +1065,7 @@ textarea:focus {
 }
 
 .muted-light {
-  color: #b9b4d6;
+  color: #8a8a8a;
   font-size: 13px;
 }
 

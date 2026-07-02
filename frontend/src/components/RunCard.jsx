@@ -8,7 +8,7 @@ function fmtDate(s) {
 
 // A saved Stage-2 run in the Workspace. Defensive about field shape since the
 // stored RunOut nests triage/gate/decision/cost which may be partial.
-export default function RunCard({ run }) {
+export default function RunCard({ run, onDelete }) {
   const [open, setOpen] = useState(false)
 
   // A persisted run (GET /runs) nests the payload under `result`; a fresh
@@ -75,6 +75,18 @@ export default function RunCard({ run }) {
             <div className="cost-note" style={{ marginTop: 12 }}>
               Spent <strong>${cost.spent_usd.toFixed(4)}</strong>
               {typeof cost.calls === 'number' && <> · {cost.calls} calls</>}
+            </div>
+          )}
+
+          {onDelete && (
+            <div className="saved-actions">
+              <button
+                type="button"
+                className="btn-danger"
+                onClick={() => onDelete(run.id)}
+              >
+                Delete run
+              </button>
             </div>
           )}
         </div>

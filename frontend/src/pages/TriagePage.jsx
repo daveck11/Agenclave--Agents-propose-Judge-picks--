@@ -131,8 +131,14 @@ export default function TriagePage() {
             {ex.name}
           </button>
         ))}
-        <button type="button" className="example-btn" onClick={clearAll}>
-          Clear
+        <button
+          type="button"
+          className="example-btn icon-btn"
+          onClick={clearAll}
+          title="Clear title and body"
+          aria-label="Clear"
+        >
+          ⟳
         </button>
       </div>
 

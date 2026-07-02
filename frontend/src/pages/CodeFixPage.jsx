@@ -51,6 +51,8 @@ export default function CodeFixPage() {
   const [status, setStatus] = useState('idle')
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
+  const [savedId, setSavedId] = useState(null)
+  const [saving, setSaving] = useState(false)
 
   function loadExample(ex) {
     patchIssue({ title: ex.title, body: ex.body })
@@ -63,16 +65,17 @@ export default function CodeFixPage() {
     setResult(null)
     setError('')
     setStatus('idle')
+    setSavedId(null)
   }
 
   async function run() {
     setError('')
     setResult(null)
+    setSavedId(null)
     setStatus('running')
     try {
-      // When logged in the backend saves the run automatically and returns a
-      // run_id; we surface that as a "saved" badge.
-      const data = await post('/runs', { title, body, live }, { auth: Boolean(user) })
+      // Runs are not auto-saved; the user keeps one with the Save run button.
+      const data = await post('/runs', { title, body, live })
       setResult(data)
       setStatus('done')
     } catch (err) {
@@ -81,9 +84,22 @@ export default function CodeFixPage() {
     }
   }
 
+  async function saveRun() {
+    if (!result) return
+    setSaving(true)
+    setError('')
+    try {
+      const data = await post('/runs/save', { title, body, result })
+      setSavedId(data.run_id)
+    } catch (err) {
+      setError(err.message || 'Could not save the run.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const running = status === 'running'
   const canRun = (title.trim() || body.trim()) && !running
-  const savedRun = Boolean(user && result && result.run_id)
 
   return (
     <>
@@ -104,8 +120,14 @@ export default function CodeFixPage() {
             {ex.name}
           </button>
         ))}
-        <button type="button" className="example-btn" onClick={clearAll}>
-          Clear
+        <button
+          type="button"
+          className="example-btn icon-btn"
+          onClick={clearAll}
+          title="Clear title and body"
+          aria-label="Clear"
+        >
+          ⟳
         </button>
       </div>
 
@@ -163,15 +185,22 @@ export default function CodeFixPage() {
         </div>
       )}
 
-      {!user && (
-        <div className="cost-note" style={{ marginTop: 14 }}>
-          <strong>Log in</strong> to automatically save runs to your Workspace.
+      {result && user && (
+        <div className="result-cta" style={{ marginTop: 14 }}>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={saveRun}
+            disabled={saving || Boolean(savedId)}
+          >
+            {savedId ? 'Saved to Workspace ✓' : saving ? 'Saving…' : 'Save run'}
+          </button>
         </div>
       )}
 
-      {savedRun && (
-        <div className="save-badge" style={{ marginTop: 14 }}>
-          Saved to your Workspace ✓
+      {result && !user && (
+        <div className="cost-note" style={{ marginTop: 14 }}>
+          <strong>Log in</strong> to save runs to your Workspace.
         </div>
       )}
 
