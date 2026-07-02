@@ -23,9 +23,12 @@ anthropic==0.40.0
 openai==1.57.4
 httpx==0.27.2
 
-# --- Stage 3: accounts, persistence (SQLite), auth ---
+# --- Stage 3: accounts, persistence (SQLite or Postgres), auth ---
+# asyncpg lets AGENCLAVE_DATABASE_URL point at a managed Postgres so accounts +
+# workspace persist on Render (the local SQLite file is on ephemeral disk).
 sqlalchemy==2.0.36
 aiosqlite==0.20.0
+asyncpg==0.30.0
 PyJWT==2.10.1
 bcrypt==4.2.1
 email-validator==2.2.0
