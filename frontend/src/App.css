@@ -289,7 +289,7 @@ textarea:focus {
   padding: 15px 17px;
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: linear-gradient(180deg, #fbfaff 0%, #f5f4fb 100%);
+  background: var(--card-grad);
 }
 
 .metric-label {
@@ -444,7 +444,7 @@ textarea:focus {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 16px 18px;
-  background: linear-gradient(180deg, #fbfaff 0%, #f6f5fc 100%);
+  background: var(--card-grad);
 }
 
 .task-top {
@@ -608,6 +608,72 @@ textarea:focus {
   color: var(--bad);
 }
 
+/* ===== Trust-scored routing panel ===== */
+.routing {
+  margin-top: 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: var(--card-grad);
+}
+
+.routing-reason {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text);
+  margin: 0 0 12px;
+}
+
+.routing-table {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.routing-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto 84px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--chip-bg);
+}
+
+.routing-row.routed {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+}
+
+.routing-head {
+  border: none;
+  background: none;
+  padding: 0 10px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.routing-model {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.routing-num {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--text);
+  text-align: right;
+}
+
+.routing-n {
+  color: var(--text-muted);
+}
+
 .cand-error {
   font-size: 12px;
   color: var(--bad);
@@ -695,7 +761,7 @@ textarea:focus {
   font-weight: 700;
   padding: 2px 9px;
   border-radius: 999px;
-  background: #fff;
+  background: var(--chip-bg);
   color: var(--accent-text);
   border: 1px solid var(--accent-border);
 }
@@ -729,8 +795,8 @@ textarea:focus {
   font-size: 13px;
   line-height: 1.55;
   color: var(--text-muted);
-  background: #fffdf5;
-  border: 1px solid #f3e6c0;
+  background: var(--warn-bg);
+  border: 1px solid rgba(217, 119, 6, 0.3);
   border-radius: 10px;
   padding: 12px 14px;
 }
@@ -837,8 +903,8 @@ textarea:focus {
 }
 
 .gate.closed {
-  background: #fff7ed;
-  border-color: #fed7aa;
+  background: var(--warn-bg);
+  border-color: rgba(217, 119, 6, 0.35);
 }
 
 .gate-icon {
@@ -1041,7 +1107,7 @@ textarea:focus {
   font-size: 13px;
   font-weight: 800;
   font-family: var(--mono);
-  background: #fff;
+  background: var(--chip-bg);
   border: 1px solid var(--border);
   color: var(--text-muted);
 }
@@ -1073,11 +1139,11 @@ textarea:focus {
 }
 
 .rec-caution {
-  border-color: #fed7aa;
-  background: #fff7ed;
+  border-color: rgba(217, 119, 6, 0.35);
+  background: var(--warn-bg);
 }
 .rec-caution .rec-icon {
-  border-color: #fed7aa;
+  border-color: rgba(217, 119, 6, 0.35);
   color: var(--warn);
 }
 .rec-caution .rec-title {
@@ -1123,7 +1189,7 @@ textarea:focus {
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: #fff;
+  background: var(--accent-border);
   border-color: var(--accent);
 }
 
@@ -1146,7 +1212,7 @@ textarea:focus {
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: #fee2e2;
+  background: rgba(220, 38, 38, 0.22);
 }
 
 .btn-danger:disabled {
@@ -1199,7 +1265,7 @@ textarea:focus {
   justify-content: space-between;
   gap: 12px;
   padding: 14px 16px;
-  background: linear-gradient(180deg, #fbfaff 0%, #f6f5fc 100%);
+  background: var(--card-grad);
   border: none;
   cursor: pointer;
   text-align: left;
@@ -1290,7 +1356,7 @@ textarea:focus {
   color: var(--good);
 }
 .gate-tag.closed {
-  background: #fff7ed;
+  background: var(--warn-bg);
   color: var(--warn);
 }
 
@@ -1386,7 +1452,7 @@ textarea:focus {
   padding: 15px 17px;
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: linear-gradient(180deg, #fbfaff 0%, #f5f4fb 100%);
+  background: var(--card-grad);
 }
 
 .resolve-card.winner {
