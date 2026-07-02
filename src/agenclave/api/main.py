@@ -37,6 +37,19 @@ ALLOWED_ORIGINS = [
 async def lifespan(app: FastAPI):
     # Create the database schema before serving requests.
     await init_db()
+    # Warm the classifier in a background thread so the first request is not slow,
+    # without blocking startup (a slow startup times out small-host health checks).
+    import threading
+
+    def _warm() -> None:
+        try:
+            from ..classifier.predict import _load_models
+
+            _load_models()
+        except Exception:  # noqa: BLE001 - warm-up is best-effort.
+            logger.exception("model warm-up failed")
+
+    threading.Thread(target=_warm, daemon=True).start()
     yield
 
 
