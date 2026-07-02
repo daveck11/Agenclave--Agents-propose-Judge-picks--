@@ -43,10 +43,10 @@ a **direct** adapter (Claude/OpenAI) and a **BlackBox Agents API** adapter, swit
 
 ## The app
 
-- **Triage + recommendations** — classify an issue and get deterministic, per-type next steps (reproduce / add a failing test / scope a feature / convert to a discussion). Bugs surface a one-click **"Send to the code-fix agents →"** call-to-action.
-- **Code-fix** — the issue is handed to the best-of-N harness (dry-run by default; live dispatch spends credits). Both agents' candidate patches and the Chairman's selected/synthesised patch are shown.
-- **Accounts + Workspace** — register/log in (bcrypt + JWT); save issues and runs to SQLite and revisit them in a per-user Workspace. The anonymous demo still works without an account.
-- **Distributable** — `make app` builds the React app and serves the whole product (UI + API) from a single `uvicorn` process on one origin.
+- **Triage + recommendations** - classify an issue and get deterministic, per-type next steps (reproduce / add a failing test / scope a feature / convert to a discussion). Bugs surface a one-click **"Send to the code-fix agents →"** call-to-action.
+- **Code-fix** - the issue is handed to the best-of-N harness (dry-run by default; live dispatch spends credits). Both agents' candidate patches and the Chairman's selected/synthesised patch are shown.
+- **Accounts + Workspace** - register/log in (bcrypt + JWT); save issues and runs to SQLite and revisit them in a per-user Workspace. The anonymous demo still works without an account.
+- **Distributable** - `make app` builds the React app and serves the whole product (UI + API) from a single `uvicorn` process on one origin.
 
 ## How this maps to BlackBox's Chairman LLM
 
@@ -74,7 +74,7 @@ make test      # pytest
 make stage2    # Chairman best-of-N harness (dry run by default; --live spends credits)
 ```
 
-Accounts/persistence need no setup — SQLite is created on first start (`data/agenclave.db`).
+Accounts/persistence need no setup - SQLite is created on first start (`data/agenclave.db`).
 Set a real `SECRET_KEY` in `.env` for anything beyond local use. Stage 2 live runs need
 `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` in `.env`.
 

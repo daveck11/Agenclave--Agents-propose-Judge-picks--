@@ -20,8 +20,8 @@ class Settings(BaseSettings):
     # The app's own settings use the AGENCLAVE_ prefix (e.g. AGENCLAVE_PROVIDER,
     # AGENCLAVE_AGENT_MODELS) so they never clash with unrelated env vars. The API
     # keys deliberately keep their conventional vendor names (ANTHROPIC_API_KEY,
-    # OPENAI_API_KEY, BLACKBOX_API_KEY) — so this app and the SDKs read the same
-    # variable — while still accepting the AGENCLAVE_-prefixed form.
+    # OPENAI_API_KEY, BLACKBOX_API_KEY) - so this app and the SDKs read the same
+    # variable - while still accepting the AGENCLAVE_-prefixed form.
     model_config = SettingsConfigDict(
         env_file=".env", env_prefix="AGENCLAVE_", extra="ignore"
     )

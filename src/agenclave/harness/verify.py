@@ -4,7 +4,7 @@
 # returning an evidence-bearing verdict. This is the trust signal that replaces the
 # blind LLM judge: the Chairman reborn ranks candidates by what ACTUALLY passes,
 # not by how a diff reads. Never raises for normal failures (a patch that doesn't
-# apply, failing tests, a timeout) — they are captured in the result, mirroring the
+# apply, failing tests, a timeout) - they are captured in the result, mirroring the
 # PatchResult / dispatch contract.
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ _SUMMARY_RE = re.compile(r"(\d+) (passed|failed|errors?)")
 # git-apply passes, exact first then increasingly lenient: tolerate wrong hunk line
 # numbers (--recount), whitespace (--ignore-whitespace), thinner context (-C1), and a
 # missing a/ b/ prefix (-p0). Recovers correct fixes with slightly-off diff metadata
-# without misapplying — the change's content context still has to match.
+# without misapplying - the change's content context still has to match.
 _APPLY_PASSES = [
     [],
     ["--recount"],
@@ -72,7 +72,7 @@ def _targets(patch: str) -> list[str]:
 def _apply(patch: str, sandbox: Path) -> tuple[bool, str]:
     # git apply is a reliable, cross-platform, atomic patch applier (a failed apply
     # leaves the tree untouched, so the -p1 fallback is safe). Normalise line endings
-    # on BOTH the patch and the target files to LF and send the patch as raw bytes —
+    # on BOTH the patch and the target files to LF and send the patch as raw bytes -
     # otherwise stdin text-mode translation (\n->\r\n on Windows) breaks context
     # matching against LF source files.
     patch = _norm_lf(patch)
@@ -82,7 +82,7 @@ def _apply(patch: str, sandbox: Path) -> tuple[bool, str]:
             try:
                 f.write_bytes(_norm_lf(f.read_text(encoding="utf-8")).encode("utf-8"))
             except (UnicodeDecodeError, OSError):
-                pass  # binary or unreadable — let git apply decide
+                pass  # binary or unreadable - let git apply decide
     subprocess.run(["git", "init", "-q"], cwd=sandbox, capture_output=True)
     patch_bytes = patch.encode("utf-8")
     last = ""

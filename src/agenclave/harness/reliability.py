@@ -1,11 +1,11 @@
-# Per-model reliability — learned from real in-loop verification outcomes.
+# Per-model reliability - learned from real in-loop verification outcomes.
 #
 # This is the memory behind "which model do I trust for this task": a JSON store
 # of how often each model's patch has actually passed verification, keyed by
-# (model, category). `trust_rank` uses it as a TIEBREAK — hard verification
+# (model, category). `trust_rank` uses it as a TIEBREAK - hard verification
 # evidence on the current task always dominates; reliability only orders equals.
 #
-# CRITICAL — no eval leakage. This store is fed ONLY by the trust mechanism's own
+# CRITICAL - no eval leakage. This store is fed ONLY by the trust mechanism's own
 # in-loop verification (`verify_patch` on the project's own tests / a generated
 # repro). It must NEVER be seeded from the hidden SWE-bench grade or its derived
 # artifacts (results/chairman_eval.json, results/preds_*.jsonl). The official
@@ -39,13 +39,13 @@ def _normalize_model(model: str) -> str:
 
 
 def _key(model: str, category: str | None) -> str:
-    # "<model>|<category>" — category is the Stage 1 triage label (bug/... ), used
+    # "<model>|<category>" - category is the Stage 1 triage label (bug/... ), used
     # verbatim; None/"" becomes an empty segment (an honest "uncategorised").
     return f"{_normalize_model(model)}|{category or ''}"
 
 
 def _load(path: Path | str | None = None) -> dict:
-    # Tolerate a missing or corrupt store by starting fresh — reliability is an
+    # Tolerate a missing or corrupt store by starting fresh - reliability is an
     # accumulating best-effort signal, never a source of truth to fail hard on.
     p = _store_path(path)
     if not p.exists():
@@ -79,7 +79,7 @@ def reliability(
     # Return (estimate, passed, total). The estimate is a Beta(1,1)-smoothed pass
     # rate `(passed + 1) / (total + 2)`: honest 0.5 with no data, converging on the
     # true rate as evidence accumulates. This is the exact count pair a later
-    # Thompson-sampling router will draw from — Beta(passed+1, total-passed+1).
+    # Thompson-sampling router will draw from - Beta(passed+1, total-passed+1).
     entry = _load(path).get(_key(model, category), {})
     passed = int(entry.get("passed", 0))
     total = int(entry.get("total", 0))

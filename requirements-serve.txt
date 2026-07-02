@@ -1,6 +1,6 @@
-# Agenclave — RUNTIME-ONLY dependencies for serving the app (Stages 1-3).
+# Agenclave - RUNTIME-ONLY dependencies for serving the app (Stages 1-3).
 # Deliberately excludes the training-only ML stack (torch, sentence-transformers,
-# transformers, datasets, matplotlib) and the test libs — the served classifier
+# transformers, datasets, matplotlib) and the test libs - the served classifier
 # is the torch-free TF-IDF model, so the deploy image stays small and fast to build.
 # Use requirements.txt instead when you need to (re)train models or run the suite.
 

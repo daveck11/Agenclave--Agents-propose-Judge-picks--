@@ -3,8 +3,8 @@
 #
 # Seeds a leader + low-data challengers, then routes many times to show the core
 # property: the leader is picked MORE OFTEN, not ALWAYS, and low-data models still
-# get explored — the explore/exploit balance a greedy "pick the best" would lose.
-# Offline, no agents, no network. Isolated temp store — the real reliability file
+# get explored - the explore/exploit balance a greedy "pick the best" would lose.
+# Offline, no agents, no network. Isolated temp store - the real reliability file
 # is never touched, and no SWE-bench grade is ever read.
 #
 #     python scripts/demo_router.py
@@ -74,7 +74,7 @@ def main() -> None:
             print(f"  {m:<26}{counts[m]:>5}  {pct:6.1%}  {bar}")
         print(
             "\nThe leader is chosen most, but not always; the newcomer is still "
-            "explored.\nRouting picks the fleet (the prior) — verification / trust_rank "
+            "explored.\nRouting picks the fleet (the prior) - verification / trust_rank "
             "still\ndecides the winner among those who ran (the posterior)."
         )
 

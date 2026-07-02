@@ -64,7 +64,7 @@ def create_app() -> FastAPI:
 def _mount_frontend(app: FastAPI) -> None:
     # Serve the built React app (if present) for a single-origin, single-command
     # deployment. API routes are registered first, so they win; the catch-all
-    # only handles unmatched GETs — real static files, else index.html (so
+    # only handles unmatched GETs - real static files, else index.html (so
     # client-side deep links like /workspace resolve to the SPA).
     index = FRONTEND_DIST / "index.html"
     if not index.is_file():

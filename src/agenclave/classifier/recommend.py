@@ -63,7 +63,7 @@ def recommend(triage: dict) -> dict:
                 ),
                 _rec(
                     "Send to the code-fix agents",
-                    "This looks like a bug — proceed to Stage 2 best-of-N dispatch "
+                    "This looks like a bug - proceed to Stage 2 best-of-N dispatch "
                     "so the agents can propose a patch.",
                     "proceed",
                 ),
@@ -102,7 +102,7 @@ def recommend(triage: dict) -> dict:
                 ),
                 _rec(
                     "Mark as good-first-issue",
-                    "Docs changes are approachable — flag for new contributors.",
+                    "Docs changes are approachable - flag for new contributors.",
                     "action",
                 ),
                 _rec(
@@ -117,7 +117,7 @@ def recommend(triage: dict) -> dict:
             [
                 _rec(
                     "Convert to a discussion / Q&A",
-                    "This reads as a question — move it to discussions or a Q&A "
+                    "This reads as a question - move it to discussions or a Q&A "
                     "channel rather than the issue tracker.",
                     "action",
                 ),
@@ -148,7 +148,7 @@ def recommend(triage: dict) -> dict:
         recs.insert(
             0,
             _rec(
-                "Low confidence — manual review suggested",
+                "Low confidence - manual review suggested",
                 f"The classifier is only {confidence:.0%} confident in "
                 f"'{label}'. Double-check the label before acting.",
                 "caution",

@@ -57,7 +57,7 @@ def _passing(agent: str, patch: str) -> tuple[PatchResult, VerifyResult]:
 
 def test_reliability_breaks_ties_over_minimality(monkeypatch):
     # Two candidates are equally TRUSTED on THIS task. `hi` has a *longer* patch
-    # (would lose on minimality) but a better track record — reliability must win,
+    # (would lose on minimality) but a better track record - reliability must win,
     # proving it outranks minimality while tier stays primary.
     rel = {"hi": (0.9, 9, 10), "lo": (0.2, 2, 10)}
     monkeypatch.setattr(trust_mod, "_reliability", lambda name, cat: rel[name])
@@ -75,7 +75,7 @@ def test_reliability_breaks_ties_over_minimality(monkeypatch):
 
 def test_reliability_never_overrides_verification_tier(monkeypatch):
     # A high-reliability BROKEN patch must still rank below a low-reliability
-    # TRUSTED one — hard evidence on the current task dominates.
+    # TRUSTED one - hard evidence on the current task dominates.
     rel = {"trusted_lo": (0.1, 1, 10), "broken_hi": (0.99, 99, 100)}
     monkeypatch.setattr(trust_mod, "_reliability", lambda name, cat: rel[name])
 

@@ -149,8 +149,8 @@ def test_anonymous_run_works_without_persisting(client, monkeypatch):
 
 
 def test_dry_run_shows_routing_projection_without_spending(client, monkeypatch):
-    # A dry run (live=False) still routes and shows the projected subset — the
-    # transparency payoff — but dispatches nothing and spends $0.
+    # A dry run (live=False) still routes and shows the projected subset - the
+    # transparency payoff - but dispatches nothing and spends $0.
     _patch_stage2(monkeypatch)
     resp = client.post("/runs", json={"title": "Crash", "body": "boom", "live": False})
     assert resp.status_code == 200

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Bucket 1 demo: verification-backed trust ranking on the controlled calc_bug
 # fixture. Runs each candidate patch through verify + trust_rank and prints the
-# ranking with evidence — the core thesis, no agents / no network.
+# ranking with evidence - the core thesis, no agents / no network.
 #
 #     python scripts/demo_trust.py
 
@@ -34,7 +34,7 @@ CANDIDATES = [
 ]
 
 # A little prior history so the reliability column has something to show. Seeded
-# ONLY from in-loop verification outcomes (here, a demo fixture) — never from any
+# ONLY from in-loop verification outcomes (here, a demo fixture) - never from any
 # SWE-bench grade. Each tuple: (model, passed, failed) of past verified runs.
 PRIOR_HISTORY = [
     ("claude-sonnet-4.6", 2, 8),  # resolved 2/10 historically
@@ -64,7 +64,7 @@ def main() -> None:
             cands.append(PatchResult(agent_name=name, instance_id="calc-add", patch=patch))
             vr = verify_patch(patch, REPO, TEST_CMD)
             vrs[name] = vr
-            # Fold THIS run's in-loop outcome back into the store — the trust loop
+            # Fold THIS run's in-loop outcome back into the store - the trust loop
             # learning from its own verification, the only signal it may use.
             rel.record_outcome(name, CATEGORY, vr.tests_passed, path=store)
 
@@ -76,7 +76,7 @@ def main() -> None:
             rel_col = f"{v.reliability:.2f} (n={v.reliability_n})"
             print(f"{i:<3}{v.agent_name:<26}{v.tier:<20}{rel_col:<14}{v.reason}")
         print(f"\nTrusted pick -> {ranking[0].agent_name}")
-        print("(tier is primary — reliability only breaks ties among equals)")
+        print("(tier is primary - reliability only breaks ties among equals)")
 
 
 if __name__ == "__main__":

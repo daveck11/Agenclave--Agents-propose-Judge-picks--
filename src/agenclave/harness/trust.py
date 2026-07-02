@@ -1,16 +1,16 @@
-# Trust ranking — the Chairman reborn as a verifier.
+# Trust ranking - the Chairman reborn as a verifier.
 #
 # Given candidate patches and their VerifyResults, rank them by DEMONSTRATED
 # trustworthiness (what actually applies and passes) rather than by how a diff
-# reads. This answers the product's core question — "which of these agent outputs
-# do I trust?" — with evidence, not vibes.
+# reads. This answers the product's core question - "which of these agent outputs
+# do I trust?" - with evidence, not vibes.
 #
 # Two trained signals are fused on top of that verification spine, but neither can
 # override it:
-#   * per-model reliability (harness/reliability.py) — how often this model's
+#   * per-model reliability (harness/reliability.py) - how often this model's
 #     patches have passed in-loop verification before. Used only to break ties
 #     between candidates that are equally good on the CURRENT task.
-#   * triage confidence (Stage 1 classifier) — when the front-door label is weak,
+#   * triage confidence (Stage 1 classifier) - when the front-door label is weak,
 #     the whole verdict set is flagged for a human second look.
 # Hard verification evidence on this task always dominates the ranking.
 
@@ -82,11 +82,11 @@ def trust_rank(
 ) -> list[TrustVerdict]:
     # Rank candidates best-first. Verification tier is PRIMARY. Within an equal
     # tier+score, tiebreak by learned reliability (higher first), then by
-    # minimality — a smaller verified diff is preferred (less collateral surface).
+    # minimality - a smaller verified diff is preferred (less collateral surface).
     #
     # `category` (the Stage 1 triage label) enables the reliability lookup and its
     # mention in the reason. `triage_confidence`, when weak, appends a caution to
-    # every verdict — the trained front-door signal, fused but non-overriding.
+    # every verdict - the trained front-door signal, fused but non-overriding.
     patch_len = {c.agent_name: len(c.patch or "") for c in candidates}
     verdicts = [_verdict(c, verify_results.get(c.agent_name)) for c in candidates]
 
@@ -99,7 +99,7 @@ def trust_rank(
 
     if triage_confidence is not None and triage_confidence < LOW_CONFIDENCE:
         caution = (
-            f" (caution: triage only {triage_confidence:.0%} confident — "
+            f" (caution: triage only {triage_confidence:.0%} confident - "
             "verify the label before trusting this ranking)"
         )
         for v in verdicts:

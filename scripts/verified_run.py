@@ -7,7 +7,7 @@
 # (harness/reliability.record_outcome), and print the trust ranking. Over many
 # runs this accumulates the genuine per-model track record the router draws on.
 #
-# HONESTY: the trust signal is each task's OWN in-loop tests — NEVER a hidden
+# HONESTY: the trust signal is each task's OWN in-loop tests - NEVER a hidden
 # SWE-bench FAIL_TO_PASS grade. This script is the only path that writes reliability
 # data, and it only writes what verify_patch actually observed.
 #
@@ -88,7 +88,7 @@ async def _run_task(t: dict, agents, live: bool) -> None:
     )
     print(f"\n=== {t['id']} (category={t['category']}) ===")
     if not live:
-        print(f"  DRY RUN — would dispatch to {[a.name for a in agents]}")
+        print(f"  DRY RUN - would dispatch to {[a.name for a in agents]}")
         print(f"  and verify each patch with: {' '.join(t['test_cmd'])}")
         return
 

@@ -29,7 +29,7 @@ Railway and Fly.io work the same way (both detect the `Dockerfile`; Fly: `fly la
 |-----|----------|-------|
 | `SECRET_KEY` | **Yes** | Any long random string. The dev default must **not** ship publicly (it signs JWTs). |
 | `PORT` | Auto | Render/Railway/Fly inject this; the image honours it. |
-| `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `BLACKBOX_API_KEY` | **No — leave UNSET on the public demo** | See security note. |
+| `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `BLACKBOX_API_KEY` | **No - leave UNSET on the public demo** | See security note. |
 
 ## Security: the public demo must not spend money
 
@@ -38,7 +38,7 @@ Railway and Fly.io work the same way (both detect the `Dockerfile`; Fly: `fly la
   Blackbox calls. Triage (Stage 1) is free and fully works; the Chairman best-of-N
   result is showcased read-only via the committed run at **`/runs/latest`**.
 - Want to demo a *live* run for Roger? Do it locally or on a private instance with keys
-  set — not on the public URL.
+  set - not on the public URL.
 
 ## Good to know
 
@@ -46,14 +46,14 @@ Railway and Fly.io work the same way (both detect the `Dockerfile`; Fly: `fly la
   Fine for a demo. To persist accounts, attach a disk/volume (Render Disk, Fly Volume)
   mounted at `/app/data`.
 - **Image is torch-free.** It installs `requirements-serve.txt` (the runtime subset),
-  not the full training stack — fast builds, small image. Use `requirements.txt` only
+  not the full training stack - fast builds, small image. Use `requirements.txt` only
   to retrain models or run tests.
 - The trained classifier (`models/`) and the demo run (`results/chairman_eval.json`)
   are baked into the image, so triage and the Stage-2 showcase work out of the box.
 
 ## Before you share the link (checklist)
 
-1. Open the URL on a phone, logged out — Triage returns a result, `/about` loads, no
+1. Open the URL on a phone, logged out - Triage returns a result, `/about` loads, no
    console errors.
 2. `SECRET_KEY` is set; no provider keys on the public instance.
 3. The repo link in `frontend/src/pages/AboutPage.jsx` (`REPO_URL`) points at the real

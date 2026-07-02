@@ -1,7 +1,7 @@
 # Bucket 2A: per-model reliability learned from in-loop verification outcomes.
 #
 # Reliability is a Beta(1,1)-smoothed pass rate per (model, category), fed ONLY by
-# the trust loop's own verification — never by any out-of-loop SWE-bench grade.
+# the trust loop's own verification - never by any out-of-loop SWE-bench grade.
 
 from __future__ import annotations
 
@@ -58,7 +58,7 @@ def test_normalize_strips_blackbox_prefix():
 
 
 def test_provider_prefix_is_collapsed_in_store(tmp_path):
-    # "blackbox:claude" and "claude" are the same model — counts must merge.
+    # "blackbox:claude" and "claude" are the same model - counts must merge.
     store = tmp_path / "rel.json"
     record_outcome("blackbox:claude", "bug", True, path=store)
     record_outcome("claude", "bug", True, path=store)

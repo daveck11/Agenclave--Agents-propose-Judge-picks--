@@ -1,4 +1,4 @@
-# Agenclave — single-image deploy. Builds the React UI, then serves UI + API from
+# Agenclave - single-image deploy. Builds the React UI, then serves UI + API from
 # one uvicorn process (see api/main.py:_mount_frontend). Torch-free runtime image.
 
 # ---- Stage 1: build the React bundle into frontend/dist ----

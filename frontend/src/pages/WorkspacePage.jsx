@@ -72,7 +72,7 @@ export default function WorkspacePage() {
             {issues.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-icon">◇</div>
-                <p>No saved issues yet — triage one to get started.</p>
+                <p>No saved issues yet - triage one to get started.</p>
               </div>
             ) : (
               <div className="saved-list">
@@ -93,7 +93,7 @@ export default function WorkspacePage() {
             {runs.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-icon">◇</div>
-                <p>No saved runs yet — dispatch a fix from the Code-fix page.</p>
+                <p>No saved runs yet - dispatch a fix from the Code-fix page.</p>
               </div>
             ) : (
               <div className="saved-list">

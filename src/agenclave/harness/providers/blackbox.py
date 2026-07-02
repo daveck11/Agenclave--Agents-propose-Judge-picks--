@@ -1,6 +1,6 @@
 # BlackBox AI provider adapter (OpenAI-compatible).
 #
-# BlackBox exposes an OpenAI-compatible inference API — "all models, one endpoint"
+# BlackBox exposes an OpenAI-compatible inference API - "all models, one endpoint"
 # (Claude, GPT, Gemini, Grok, DeepSeek, ...). So this adapter reuses the OpenAI
 # Async SDK pointed at BlackBox's base URL with a `bb_` key, exactly mirroring the
 # OpenAI branch of DirectAgent. Every agent in the best-of-N panel is then
@@ -14,7 +14,7 @@
 #
 # `propose_patch` never raises for normal failures (network/API errors, empty
 # output): they are captured in `PatchResult.error` so dispatch keeps the other
-# candidates — same contract as DirectAgent.
+# candidates - same contract as DirectAgent.
 #
 # NOTE: confirm the exact base URL + model ids against BlackBox's current API docs.
 # They are config values precisely so wiring a real key needs no code change.

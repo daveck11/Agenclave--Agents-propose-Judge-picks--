@@ -129,7 +129,7 @@ async def complete_json(
     # Completion constrained to a JSON object matching `schema`.
     #
     #     provider="blackbox": OpenAI JSON mode against BlackBox's endpoint (the
-    #     schema is embedded in the prompt). Otherwise routed by model name —
+    #     schema is embedded in the prompt). Otherwise routed by model name -
     #     Anthropic: a single forced tool whose `input_schema` is `schema`, the
     #     model must call it, and we return the validated tool input. OpenAI: JSON
     #     response format, with the schema embedded in the prompt, then `json.loads`.

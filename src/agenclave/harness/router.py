@@ -1,4 +1,4 @@
-# Task->model routing — the north star: "which model do I trust for this task?"
+# Task->model routing - the north star: "which model do I trust for this task?"
 #
 # BlackBox routes across models but is famously opaque about which model it picks
 # and why. This router picks a TRUSTED SUBSET (top-k) of the available models for a
@@ -10,14 +10,14 @@
 # overrides the prior on the current task. The router never selects a winner.
 #
 # Why Thompson sampling (not "pick the highest reliability"): the greedy choice
-# collapses to always-the-leader (e.g. always Claude) — the explore/exploit trap.
-# Instead we draw one sample per model from its Beta(passed+1, fail+1) posterior —
-# the exact counts reliability.py stores — and take the top-k by sample. Low-data
+# collapses to always-the-leader (e.g. always Claude) - the explore/exploit trap.
+# Instead we draw one sample per model from its Beta(passed+1, fail+1) posterior -
+# the exact counts reliability.py stores - and take the top-k by sample. Low-data
 # models have a wide Beta and still get explored; the leader wins MORE OFTEN, not
 # ALWAYS.
 #
 # Reads ONLY reliability.py (fed solely by in-loop verify_patch). It must never
-# touch any SWE-bench grade or its artifacts — that stays a separate, out-of-loop
+# touch any SWE-bench grade or its artifacts - that stays a separate, out-of-loop
 # final scorer.
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ class RouteDecision:
     # The routing verdict for one task category.
     selected: list[str]  # models chosen to run, best sample first
     considered: list[dict] = field(default_factory=list)  # per-model detail
-    reason: str = ""  # human explanation — the transparency payoff
+    reason: str = ""  # human explanation - the transparency payoff
 
 
 def _phrase(considered: list[dict], selected: list[str], category: str | None) -> str:

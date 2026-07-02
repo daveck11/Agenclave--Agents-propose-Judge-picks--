@@ -1,6 +1,6 @@
 # Round 3: task->model routing via Thompson sampling over per-model reliability.
 #
-# The router picks a trusted top-k SUBSET (the prior — who runs), never the winner
+# The router picks a trusted top-k SUBSET (the prior - who runs), never the winner
 # (that stays with verification). These tests pin the selection contract and the
 # explore/exploit behaviour that motivates Thompson sampling over a greedy pick.
 
@@ -49,7 +49,7 @@ def test_seeded_rng_is_deterministic(tmp_path):
 
 def test_explore_exploit_leader_wins_more_but_not_always(tmp_path):
     # A strong-history model should be picked more often than a weak one, yet the
-    # weak one must still be explored sometimes — the property greedy selection
+    # weak one must still be explored sometimes - the property greedy selection
     # would violate (it would pick the leader every time).
     store = tmp_path / "rel.json"
     _seed_history(store, "claude", 7, 3)   # strong: 7/10

@@ -1,4 +1,4 @@
-# Agenclave — task runner.
+# Agenclave - task runner.
 # Windows (no `make`)? Each target maps to a one-line command shown in the README
 # Quickstart; run that command directly in PowerShell.
 
