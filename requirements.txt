@@ -17,7 +17,7 @@ torch==2.3.1
 transformers==4.44.2
 huggingface-hub==0.24.6
 
-# Dataset loading (NLBSE issue classification, SWE-bench Lite slice)
+# Dataset loading (NLBSE issue classification)
 datasets==2.21.0
 
 # --- Stage 1: API ---
@@ -27,7 +27,7 @@ pydantic==2.10.4
 pydantic-settings==2.7.0
 python-dotenv==1.0.1
 
-# --- Stage 2: Chairman harness (providers + judge) ---
+# --- Best-of-N harness (providers + judge) ---
 anthropic==0.40.0
 openai==1.57.4
 httpx==0.27.2

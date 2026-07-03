@@ -87,13 +87,15 @@ forbidden, severity is **omitted from the deliverable** (decision 2026-06-16).
 The path remains available for local experimentation only via
 `python scripts/prepare_data.py --with-severity`; nothing it produces is shipped.
 
-## Code-fix evaluation (Stage 2)
+## Code-fix verification (trust harness)
 
-- **Source:** SWE-bench Lite (`princeton-nlp/SWE-bench_Lite`), a small slice of
-  5-10 instances. Exact instance IDs recorded in `results/chairman_eval.json`.
-  No prep needed now; loaded directly by the Stage 2 harness.
-- **License:** per SWE-bench (MIT for the harness; underlying repos under their
-  own licenses).
+- **Source:** self-contained fixtures that ship with the repo, each carrying its
+  own runnable tests (`tests/fixtures/`, plus the task library in
+  `scripts/verified_run.py`). No external dataset is downloaded.
+- **Why in-repo:** the trust signal comes from running each candidate patch against
+  a task's OWN tests in-loop, so keeping the fixtures in the repo makes verification
+  deterministic and keeps per-model reliability strictly separate from any held-out
+  grade.
 
 ## Reproduce
 

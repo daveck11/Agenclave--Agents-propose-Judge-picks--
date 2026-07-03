@@ -7,10 +7,9 @@
 #
 # CRITICAL - no eval leakage. This store is fed ONLY by the trust mechanism's own
 # in-loop verification (`verify_patch` on the project's own tests / a generated
-# repro). It must NEVER be seeded from the hidden SWE-bench grade or its derived
-# artifacts (results/chairman_eval.json, results/preds_*.jsonl). The official
-# grade is a separate, out-of-loop final scorer; mixing it in here would both
-# import that conclusion and contaminate the trust loop with the eval signal.
+# repro). It must NEVER be seeded from a hidden held-out grade or any out-of-loop
+# final scorer. Mixing that in would both import its conclusion and contaminate the
+# trust loop with the very signal used to judge the system.
 
 from __future__ import annotations
 

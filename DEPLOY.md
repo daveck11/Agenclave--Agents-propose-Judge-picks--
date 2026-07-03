@@ -33,10 +33,10 @@ Railway and Fly.io work the same way (both detect the `Dockerfile`; Fly: `fly la
 
 ## Security: the public demo must not spend money
 
-- **Do NOT set provider API keys on the public instance.** Without them, live Stage-2
-  runs simply can't fire, so a random visitor can never trigger paid Anthropic/OpenAI/
-  Blackbox calls. Triage (Stage 1) is free and fully works; the Chairman best-of-N
-  result is showcased read-only via the committed run at **`/runs/latest`**.
+- **Do NOT set provider API keys on the public instance.** Without them, live runs
+  simply can't fire, so a random visitor can never trigger paid Anthropic/OpenAI/
+  Blackbox calls. Triage is free and fully works; live best-of-N + trust-scored
+  routing runs only when a key is set (locally or on a private instance).
 - Want to demo a *live* run for Roger? Do it locally or on a private instance with keys
   set - not on the public URL.
 
@@ -48,8 +48,8 @@ Railway and Fly.io work the same way (both detect the `Dockerfile`; Fly: `fly la
 - **Image is torch-free.** It installs `requirements-serve.txt` (the runtime subset),
   not the full training stack - fast builds, small image. Use `requirements.txt` only
   to retrain models or run tests.
-- The trained classifier (`models/`) and the demo run (`results/chairman_eval.json`)
-  are baked into the image, so triage and the Stage-2 showcase work out of the box.
+- The trained classifier (`models/`) is baked into the image, so triage works out of
+  the box; live best-of-N needs a provider key (see above).
 
 ## Before you share the link (checklist)
 

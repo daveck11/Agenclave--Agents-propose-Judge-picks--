@@ -5,10 +5,10 @@
 PY ?= python
 VENV ?= .venv
 
-.PHONY: help setup data train eval stage1 serve demo web-build app dev test stage2 clean
+.PHONY: help setup data train eval stage1 serve demo web-build app dev test trust clean
 
 help:
-	@echo "Targets: setup | stage1 (data train eval) | app | dev | serve | demo | test | stage2"
+	@echo "Targets: setup | stage1 (data train eval) | app | dev | serve | demo | test | trust"
 	@echo "  app  = build UI + serve the whole product on :8000 (single command)"
 	@echo "  dev  = how to run API + Vite hot-reload for development"
 
@@ -49,8 +49,8 @@ dev:                  ## how to run API + Vite hot-reload (two terminals)
 test:                 ## run the pytest suite
 	$(PY) -m pytest
 
-stage2:               ## run the Chairman best-of-N harness on the SWE-bench slice
-	$(PY) scripts/run_chairman.py
+trust:                ## verified best-of-N -> per-model reliability (dry run by default)
+	$(PY) scripts/verified_run.py
 
 clean:
 	rm -rf $(VENV) **/__pycache__ .pytest_cache

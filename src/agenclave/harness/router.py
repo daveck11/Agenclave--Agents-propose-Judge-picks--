@@ -17,8 +17,7 @@
 # ALWAYS.
 #
 # Reads ONLY reliability.py (fed solely by in-loop verify_patch). It must never
-# touch any SWE-bench grade or its artifacts - that stays a separate, out-of-loop
-# final scorer.
+# touch a held-out grade or any out-of-loop final scorer.
 
 from __future__ import annotations
 

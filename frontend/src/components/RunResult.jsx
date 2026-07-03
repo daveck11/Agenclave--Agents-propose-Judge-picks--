@@ -1,7 +1,5 @@
-// Shared rendering of a /runs response: Stage-1 triage summary, the gate,
+// Shared rendering of a /runs response: triage summary, the gate, routing,
 // cost notes, the parallel agent grid with diffs, and the chairman decision.
-// Extracted from the original Stage2View so both Stage2View and CodeFixPage
-// render runs identically.
 
 export function Diff({ patch }) {
   if (!patch || !patch.trim()) {

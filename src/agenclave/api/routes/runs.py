@@ -1,14 +1,13 @@
-# Stage 2 pipeline routes.
+# Pipeline + run persistence routes.
 #
-# `POST /runs` is the full pipeline: Stage 1 triage as the *gate* for Stage 2.
-# It works anonymously exactly as before (dry run by default, live dispatch when
-# `live` is set). When the caller is authenticated, the run is ALSO persisted and
-# its id returned. `GET /runs` / `GET /runs/{id}` list a user's own runs;
-# `GET /runs/latest` stays an anonymous demo endpoint over chairman_eval.json.
+# `POST /runs` is the full pipeline: triage as the gate, then trust-scored routing
+# and (when `live` is set) best-of-N dispatch + the Chairman judge. It works
+# anonymously (dry run by default) and never auto-saves. Authenticated users keep a
+# run with `POST /runs/save`; `GET /runs` / `GET /runs/{id}` / `DELETE /runs/{id}`
+# manage a user's own saved runs.
 
 from __future__ import annotations
 
-import json
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
@@ -16,7 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...classifier.predict import ModelsNotTrained, predict_triage
-from ...config import RESULTS_DIR, settings
+from ...config import settings
 from ...harness import Chairman, Task, build_agents, dispatch, route
 from ..auth import get_current_user, get_optional_user
 from ..db import get_session
@@ -27,8 +26,7 @@ logger = logging.getLogger("agenclave.api")
 
 router = APIRouter(tags=["runs"])
 
-# Rough $/1M tokens (input, output) - same table as scripts/run_chairman.py, so
-# the web cost projection matches the CLI.
+# Rough $/1M tokens (input, output) for the live cost projection shown in the UI.
 _PRICE_PER_M = {
     "claude-opus-4-8": (5.0, 25.0),
     "claude-sonnet-4-6": (3.0, 15.0),
@@ -188,43 +186,6 @@ async def list_runs(
         select(Run).where(Run.user_id == current.id).order_by(Run.id.desc())
     )
     return list(result.scalars().all())
-
-
-@router.get("/runs/latest")
-def latest_run() -> dict:
-    # Serve the most recent Stage 2 Chairman run (results/chairman_eval.json) so
-    # the demo can render real candidate patches + the judge's decision. Returns
-    # 404 (with guidance) when no live run has been recorded yet.
-    path = RESULTS_DIR / "chairman_eval.json"
-    if not path.exists():
-        raise HTTPException(
-            status_code=404,
-            detail="no Stage 2 run found; run `python scripts/run_chairman.py --live`",
-        )
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        logger.exception("failed to read chairman_eval.json")
-        raise HTTPException(status_code=500, detail="could not read run results") from exc
-
-
-@router.get("/resolve-rate")
-def resolve_rate() -> dict:
-    # Serve the SWE-bench resolve rate measured offline by scripts/grade_swebench.py
-    # (the official harness, in Docker, on the author's machine). The app only
-    # *displays* this committed number - opening the link never runs Docker. Returns
-    # 404 until a real grading has been recorded, so the UI never shows a fake score.
-    path = RESULTS_DIR / "resolve_rate.json"
-    if not path.exists():
-        raise HTTPException(
-            status_code=404,
-            detail="no resolve rate recorded yet; run scripts/grade_swebench.py with Docker",
-        )
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        logger.exception("failed to read resolve_rate.json")
-        raise HTTPException(status_code=500, detail="could not read resolve rate") from exc
 
 
 @router.get("/runs/{run_id}", response_model=RunOut)
