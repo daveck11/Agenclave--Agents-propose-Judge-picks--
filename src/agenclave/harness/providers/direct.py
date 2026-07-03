@@ -9,11 +9,10 @@
 # - `complete_json`  -> a completion constrained to a JSON object matching a
 #   schema (Claude: forced tool use; OpenAI: JSON response format).
 #
-# These deliberately use only the stable `messages.create` /
-# `chat.completions.create` surface so they work with the pinned SDKs
-# (anthropic 0.40.0, openai 1.57.4). Adaptive thinking is intentionally NOT sent:
-# it post-dates the pinned anthropic SDK. If the SDK is upgraded, pass
-# `thinking={"type": "adaptive"}` to the judge call for better reasoning.
+# Only the stable `messages.create` / `chat.completions.create` surface is
+# used, so this works with the pinned SDKs (anthropic 0.40.0, openai
+# 1.57.4). Adaptive thinking isn't sent because it post-dates the pinned
+# anthropic SDK.
 
 from __future__ import annotations
 
@@ -34,7 +33,7 @@ def is_openai_model(model: str) -> bool:
     return m.startswith(("gpt", "o1", "o3", "o4", "chatgpt"))
 
 
-# --- Cached async clients (created on first use; need keys only then) ----------
+# clients are created on first use so importing this module needs no keys
 @functools.lru_cache(maxsize=1)
 def _anthropic_client():
     import anthropic  # lazy: avoid import cost / key lookup at module load
@@ -67,9 +66,6 @@ def _blackbox_client():
     )
 
 
-# ------------------------------------------------------------------------------
-# Low-level completions (provider-routed by model name)
-# ------------------------------------------------------------------------------
 async def complete_text(
     model: str,
     system: str,
@@ -126,13 +122,12 @@ async def complete_json(
     max_tokens: int = 4096,
     provider: str = "direct",
 ) -> dict[str, Any]:
-    # Completion constrained to a JSON object matching `schema`.
-    #
-    #     provider="blackbox": OpenAI JSON mode against BlackBox's endpoint (the
-    #     schema is embedded in the prompt). Otherwise routed by model name -
-    #     Anthropic: a single forced tool whose `input_schema` is `schema`, the
-    #     model must call it, and we return the validated tool input. OpenAI: JSON
-    #     response format, with the schema embedded in the prompt, then `json.loads`.
+    """Completion constrained to a JSON object matching `schema`.
+
+    For Anthropic this is a single forced tool call whose input_schema is
+    the schema. For OpenAI (and BlackBox, which speaks the same protocol)
+    it's JSON response format with the schema pasted into the prompt.
+    """
     if provider == "blackbox":
         client = _blackbox_client()
         user_with_schema = (
@@ -193,16 +188,10 @@ async def complete_json(
     )
 
 
-# ------------------------------------------------------------------------------
-# Agent
-# ------------------------------------------------------------------------------
 class DirectAgent(Agent):
-    # A coding agent backed directly by a Claude or OpenAI model.
-    #
-    #     `propose_patch` never raises for normal failures (network/API errors,
-    #     empty output): it captures them in `PatchResult.error` so dispatch can
-    #     keep the other candidates. `ValueError` for an unknown model is a config
-    #     error and surfaces at construction, not here.
+    # An agent backed directly by a Claude or OpenAI model. propose_patch
+    # catches normal failures into PatchResult.error; an unknown model name
+    # is a config mistake and fails at construction instead.
 
     def __init__(self, model: str, *, max_tokens: int = 4096) -> None:
         if not (is_anthropic_model(model) or is_openai_model(model)):

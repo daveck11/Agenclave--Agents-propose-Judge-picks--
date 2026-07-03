@@ -25,16 +25,12 @@ AGENT_SYSTEM_PROMPT = (
 
 
 def build_task_prompt(task: Task) -> str:
-    # Compose the user prompt for a coding agent from a triaged Task.
-    #
-    #     The Stage 1 triage label and severity (when present) are surfaced as context
-    #     so the agent benefits from the classifier front door, mirroring how the real
-    #     pipeline annotates a task before dispatch.
+    # Builds the user prompt for a coding agent. The triage label and
+    # severity are included as context when the classifier has run.
     parts: list[str] = []
     parts.append(f"Repository: {task.repo}")
     if task.base_commit:
         parts.append(f"Base commit: {task.base_commit}")
-    # Stage 1 annotations (optional; the classifier is the front door).
     triage_bits = []
     if task.triage_label:
         triage_bits.append(f"type={task.triage_label}")
@@ -64,14 +60,11 @@ _FENCE_RE = re.compile(
 
 
 def extract_diff(text: str) -> str:
-    # Pull a unified diff out of a model response.
-    #
-    #     Order of preference:
-    #     1. The contents of a fenced code block (a diff fence), if present.
-    #     2. The substring starting at the first `diff --git` / `--- ` marker.
-    #     3. The whole response, stripped (last resort; let the apply step judge it).
-    #
-    #     Returns the diff text (may be empty if the model produced nothing usable).
+    """Pull a unified diff out of a model response.
+
+    Tries a fenced code block first, then the first diff marker, then just
+    returns the stripped response and lets the apply step reject it.
+    """
     if not text:
         return ""
 

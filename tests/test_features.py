@@ -124,8 +124,7 @@ def test_predict_triage_schema():
 
 
 def test_predict_module_is_torch_free():
-    # The serving import path must not pull in torch / sentence-transformers.
-    # Importing predict should not import torch.
+    # the serving import path must not pull in torch / sentence-transformers
     import agenclave.classifier.predict  # noqa: F401
 
     assert "torch" not in sys.modules, "predict.py must stay torch-free"

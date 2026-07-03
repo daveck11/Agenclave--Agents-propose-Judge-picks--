@@ -1,13 +1,11 @@
-# Deterministic, torch-free next-step recommendations for a triaged issue.
-#
-# Pure rules keyed on the Stage 1 prediction (`label` + `label_confidence`, and
-# `severity` when present). No model, no I/O, no randomness, so the same triage
-# always yields the same advice. `bug` is the only label that may proceed to the
-# Stage 2 code-fix agents; everything else routes to a human workflow.
+# Next-step recommendations for a triaged issue. Plain rules on the
+# predicted label and confidence, no model and no randomness, so the same
+# triage always gives the same advice. Only a bug may proceed to the
+# code-fix agents.
 
 from __future__ import annotations
 
-# Confidence below this is treated as "weak" -> prepend a manual-review caution.
+# below this the label is treated as weak and gets a manual-review caution
 LOW_CONFIDENCE = 0.5
 
 
@@ -27,10 +25,8 @@ def _severity_urgency(severity: str | None) -> str:
 
 
 def recommend(triage: dict) -> dict:
-    # Turn a triage result into concrete next steps + a Stage 2 gate decision.
-    #
-    #     Returns `{"recommendations": [{title, detail, kind}, ...],
-    #     "can_proceed_to_stage2": bool}`. Only `bug` can proceed.
+    # Returns {"recommendations": [{title, detail, kind}, ...],
+    # "can_proceed_to_stage2": bool}. Only "bug" can proceed.
     label = triage.get("label", "")
     confidence = float(triage.get("label_confidence", triage.get("confidence", 0.0)))
     severity = triage.get("severity")

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Evaluate every trained config on the held-out TEST set.
+# Evaluate every trained config on the held-out test set.
 #
 # Loads `models/_trained_configs.joblib` (produced by train_classifier.py),
 # scores all 4 configs per task on the deterministic test split, and writes:

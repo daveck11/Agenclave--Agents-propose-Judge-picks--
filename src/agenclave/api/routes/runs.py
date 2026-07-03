@@ -55,12 +55,9 @@ async def run_pipeline(
     user: User | None = Depends(get_optional_user),
     session: AsyncSession = Depends(get_session),
 ) -> dict:
-    # The full pipeline, end to end, with Stage 1 as the *gate* for Stage 2:
-    #
-    #   1. Triage the issue (Stage 1 front door).
-    #   2. Gate: only a `bug` proceeds; non-bugs are filtered out at $0 cost.
-    #   3. If it passed the gate AND `live` is set, dispatch to N agents and let
-    #      the Chairman judge (Stage 2). Otherwise it's a dry run (no API calls).
+    # Full pipeline: triage the issue, gate on the label (only a bug goes
+    # further), then if `live` is set dispatch to the routed agents and let
+    # the Chairman judge. Without `live` it stops before any API call.
     try:
         tri = predict_triage(req.title, req.body)
     except ModelsNotTrained as exc:
@@ -73,13 +70,11 @@ async def run_pipeline(
     passed = label == "bug"
     models = settings.agent_model_list
 
-    # Trust-scored routing (Round 4): when the gate passes, pick the trusted subset
-    # of the panel for this category instead of always dispatching all of it. This
-    # is a READ-ONLY prior over per-model reliability - the web run judges with the
-    # Chairman LLM and has no repo checkout / no verify_patch, so it produces no
-    # in-loop verification signal and deliberately does NOT call record_outcome
-    # (that would fabricate or leak the eval signal). Verification, when it exists,
-    # remains the only thing that updates trust.
+    # When the gate passes, route to a subset of the panel instead of always
+    # dispatching everyone. Read-only: a web run has no repo checkout, so
+    # there is no verify_patch result here, and we must not call
+    # record_outcome without one (writing the judge's opinion into the
+    # reliability store would defeat the point of it).
     routing = route(label, models, settings.route_k) if passed else None
     run_models = routing.selected if routing else models
 
@@ -127,9 +122,7 @@ async def run_pipeline(
         "selected_patch": "",
     }
 
-    # Gate closed (non-bug) or a dry run → stop before any live dispatch.
     if passed and req.live:
-        # Stage 2 live dispatch.
         statement = f"{req.title}\n\n{req.body}".strip()
         task = Task(
             instance_id="web-run",
@@ -139,7 +132,6 @@ async def run_pipeline(
             triage_severity=tri.get("severity"),
         )
         try:
-            # Only the routed (trusted) subset is dispatched - not the full panel.
             agents = build_agents(settings.provider, run_models)
             chairman = Chairman(settings.chairman_model)
             candidates = await dispatch(task, agents)
@@ -172,7 +164,7 @@ async def run_pipeline(
         )
         out["cost"]["spent_usd"] = round(projection, 4)
 
-    # Runs are NOT auto-saved. The user keeps a run explicitly via POST /runs/save.
+    # runs are never auto-saved; the user keeps one via POST /runs/save
     return out
 
 

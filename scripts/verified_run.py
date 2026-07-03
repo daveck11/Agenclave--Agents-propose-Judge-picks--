@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
-# Round 5: live verified runs -> real per-model reliability.
+# Live verified runs. For each fixture task, dispatch to the configured
+# agents, apply and test every candidate with verify_patch, record pass/fail
+# into the reliability store, and print the trust ranking. Repeated runs are
+# what build up the per-model track record the router uses.
 #
-# For each task that ships with its OWN runnable tests, dispatch to the configured
-# agents (live), verify each candidate by applying it and running those tests
-# (harness/verify.verify_patch), record the pass/fail into the reliability store
-# (harness/reliability.record_outcome), and print the trust ranking. Over many
-# runs this accumulates the genuine per-model track record the router draws on.
+# This script is the only thing that writes reliability data, and the signal
+# is each task's own tests, not a SWE-bench grade (see reliability.py for
+# why that matters).
 #
-# HONESTY: the trust signal is each task's OWN in-loop tests - NEVER a hidden
-# SWE-bench FAIL_TO_PASS grade. This script is the only path that writes reliability
-# data, and it only writes what verify_patch actually observed.
-#
-# Dry-run by default (no API calls). --live dispatches to the provider (spends).
+# Dry-run by default so you can't spend credits by accident.
 #
 #   python scripts/verified_run.py --dry-run
 #   python scripts/verified_run.py --live
@@ -32,8 +29,8 @@ from agenclave.harness.reliability import record_outcome, reliability  # noqa: E
 from agenclave.harness.trust import trust_rank  # noqa: E402
 from agenclave.harness.verify import verify_patch  # noqa: E402
 
-# Task library: self-contained fixtures, each with its own tests. `category` is the
-# task kind (feeds per-category reliability). Grow this list for richer signal.
+# Self-contained fixtures, each with its own tests. More tasks here means
+# better reliability data.
 TASKS = [
     {
         "id": "calc-add",
@@ -100,7 +97,6 @@ async def _run_task(t: dict, agents, live: bool) -> None:
             continue
         vr = verify_patch(c.patch, t["repo"], t["test_cmd"])
         vrs[c.agent_name] = vr
-        # Honest: reliability is fed ONLY by this in-loop verification result.
         record_outcome(c.agent_name, t["category"], vr.tests_passed)
         print(f"  {c.agent_name:<46} applies={vr.applies} tests_passed={vr.tests_passed}")
 
@@ -123,12 +119,12 @@ async def _amain(args: argparse.Namespace) -> None:
         for m in models:
             est, passed, total = reliability(m, "bug")
             print(f"  {m:<46} {passed}/{total}  est={est:.3f}")
-        print("\nWrote results/model_reliability.json - the router now has real data.")
+        print("\nWrote results/model_reliability.json")
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(
-        description="Round 5: live verified runs -> per-model reliability."
+        description="Run agents on fixture tasks and record verified reliability."
     )
     ap.add_argument("--live", action="store_true", help="dispatch to the provider (spends credits)")
     ap.add_argument("--dry-run", action="store_true", help="no API calls (default)")

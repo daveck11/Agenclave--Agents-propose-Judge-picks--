@@ -3,7 +3,7 @@
 #
 # This script downloads two real, citable, directly-downloadable sources, caches
 # the raw files under `data/raw/` (gitignored), and writes normalized CSVs to
-# `data/processed/`. NO data is fabricated. If a source is unreachable the
+# `data/processed/`. Nothing is synthesised. If a source is unreachable the
 # script fails loudly; it never silently substitutes fake data.
 #
 # Sources
@@ -64,19 +64,17 @@
 #   --force is given.
 # - Prints resulting per-class counts for both CSVs.
 #
-# Shipped deliverable is TYPE-ONLY. The severity head is OMITTED from the
-# deliverable as a deliberate integrity choice: no cleanly OSS/SPDX-licensed,
-# directly-downloadable severity source at usable size was found (the available HF
-# mirror is citation-only, not formally licensed). The severity path below is
-# preserved for local experimentation behind an explicit opt-in flag, but it is
-# NOT part of what Agenclave ships. No data is ever fabricated to fill the gap.
+# Only the type head ships. I dropped the severity head because I couldn't
+# find a cleanly licensed severity source at usable size (the HF mirror is
+# citation-only, no formal license). The severity path below is kept for
+# local experiments behind an opt-in flag, but it isn't part of the app.
 #
 # Usage
 # -----
 #     python scripts/prepare_data.py                 # type head only (default; shipped)
 #     python scripts/prepare_data.py --force         # re-download raw caches
 #     python scripts/prepare_data.py --per-class 3000
-#     python scripts/prepare_data.py --with-severity # opt-in; NOT shipped (see note above)
+#     python scripts/prepare_data.py --with-severity # opt-in, not shipped (see above)
 #
 # Only uses libraries already pinned in requirements.txt (pandas, datasets,
 # huggingface-hub) plus the Python stdlib (urllib, tarfile).
@@ -168,7 +166,7 @@ def _download(url: str, dest: Path, force: bool) -> Path:
     except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, OSError) as exc:
         _die(
             f"failed to download {url}\n  reason: {exc}\n"
-            "  The source must be reachable; no fabricated fallback is used."
+            "  The source must be reachable; there is no synthetic fallback."
         )
     print(f"  [done]  {dest.name} ({dest.stat().st_size:,} bytes)")
     return dest
@@ -296,7 +294,7 @@ def prepare_severity(per_class: int, force: bool) -> None:
     except Exception as exc:  # noqa: BLE001 - surface any load error loudly
         _die(
             f"failed to load HF severity dataset '{SEVERITY_HF_ID}': {exc}\n"
-            "  The source must be reachable; no fabricated fallback is used."
+            "  The source must be reachable; there is no synthetic fallback."
         )
 
     # Expected columns: Project, Bug ID, Severity Label, Resolution Status,
@@ -376,9 +374,9 @@ def main() -> None:
         prepare_severity(args.per_class, args.force)
     else:
         print(
-            "\n=== Severity head omitted (default): shipping TYPE-ONLY. ===\n"
-            "    Deliberate integrity choice, no cleanly licensed severity source\n"
-            "    was found. Pass --with-severity for local-only experimentation."
+            "\n=== Severity head omitted (default): type head only. ===\n"
+            "    No cleanly licensed severity source was found.\n"
+            "    Pass --with-severity for local-only experimentation."
         )
 
     print("\nDone.")
