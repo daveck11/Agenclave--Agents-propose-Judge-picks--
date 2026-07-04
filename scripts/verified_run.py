@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import sys
 from pathlib import Path
 
@@ -76,7 +77,7 @@ TASKS = [
 ]
 
 
-async def _run_task(t: dict, agents, live: bool) -> None:
+async def _run_task(t: dict, agents, live: bool, log: list) -> None:
     task = Task(
         instance_id=t["id"],
         repo=str(t["repo"]),
@@ -94,11 +95,20 @@ async def _run_task(t: dict, agents, live: bool) -> None:
     for c in candidates:
         if not c.ok:
             print(f"  {c.agent_name:<46} dispatch=err: {c.error}")
+            log.append({"task": t["id"], "agent": c.agent_name, "dispatch_error": c.error})
             continue
         vr = verify_patch(c.patch, t["repo"], t["test_cmd"])
         vrs[c.agent_name] = vr
         record_outcome(c.agent_name, t["category"], vr.tests_passed)
         print(f"  {c.agent_name:<46} applies={vr.applies} tests_passed={vr.tests_passed}")
+        # keep enough evidence to explain a failure afterwards
+        log.append({
+            "task": t["id"], "agent": c.agent_name,
+            "applies": vr.applies, "tests_passed": vr.tests_passed,
+            "passed": vr.passed, "total": vr.total, "error": vr.error,
+            "evidence_tail": vr.evidence[-800:],
+            "patch": c.patch,
+        })
 
     ranking = trust_rank(candidates, vrs, category=t["category"])
     print("  trust ranking:")
@@ -111,15 +121,19 @@ async def _amain(args: argparse.Namespace) -> None:
     print(f"provider={settings.provider} live={args.live}")
     print(f"models: {models}")
     agents = build_agents(settings.provider, models) if args.live else []
+    log: list = []
     for t in TASKS:
-        await _run_task(t, agents, args.live)
+        await _run_task(t, agents, args.live, log)
 
     if args.live:
         print("\nUpdated reliability (category=bug):")
         for m in models:
             est, passed, total = reliability(m, "bug")
             print(f"  {m:<46} {passed}/{total}  est={est:.3f}")
+        log_path = ROOT / "results" / "verified_run_last.json"
+        log_path.write_text(json.dumps(log, indent=2), encoding="utf-8")
         print("\nWrote results/model_reliability.json")
+        print(f"Wrote {log_path} (per-candidate patches + test evidence)")
 
 
 def main() -> None:
