@@ -87,6 +87,15 @@ def test_build_agents_blackbox():
     assert agents[0].name == "blackbox:blackbox-coder"
 
 
+def test_build_agents_direct_prefix_mixes_providers():
+    # A `direct:` prefix routes one model through the direct Anthropic/OpenAI
+    # adapter while the rest of the panel stays on BlackBox.
+    agents = build_agents("blackbox", ["direct:claude-sonnet-5", "blackboxai/openai/gpt-5.4"])
+    assert isinstance(agents[0], DirectAgent)
+    assert agents[0].name == "claude-sonnet-5"
+    assert isinstance(agents[1], BlackBoxAgent)
+
+
 def test_build_agents_unknown_provider_raises():
     with pytest.raises(ValueError):
         build_agents("nope", ["claude-sonnet-4-6"])
