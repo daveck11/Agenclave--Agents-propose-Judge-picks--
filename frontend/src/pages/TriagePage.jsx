@@ -4,6 +4,7 @@ import { post } from '../api'
 import { useAuth } from '../auth/AuthContext'
 import { useIssue } from '../context/IssueContext'
 import RecommendationList from '../components/RecommendationList'
+import FixturePicker from '../components/FixturePicker'
 
 const EXAMPLES = [
   {
@@ -53,6 +54,13 @@ export default function TriagePage() {
 
   function loadExample(ex) {
     patchIssue({ title: ex.title, body: ex.body, triage: null })
+    setResult(null)
+    setError('')
+    setSaved(false)
+  }
+
+  function loadFixture(f) {
+    patchIssue({ title: f.title, body: f.body, triage: null })
     setResult(null)
     setError('')
     setSaved(false)
@@ -141,6 +149,8 @@ export default function TriagePage() {
           ⟳
         </button>
       </div>
+
+      <FixturePicker onLoad={loadFixture} />
 
       <form onSubmit={triage}>
         <label htmlFor="title">Title</label>

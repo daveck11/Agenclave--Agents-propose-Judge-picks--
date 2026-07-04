@@ -18,7 +18,7 @@ from fastapi.staticfiles import StaticFiles
 
 from ..config import ROOT
 from .db import init_db
-from .routes import auth, issues, runs, triage
+from .routes import auth, fixtures, issues, runs, triage
 
 logger = logging.getLogger("agenclave.api")
 
@@ -69,6 +69,7 @@ def create_app() -> FastAPI:
     app.include_router(auth.router)
     app.include_router(issues.router)
     app.include_router(runs.router)
+    app.include_router(fixtures.router)
 
     _mount_frontend(app)
     return app

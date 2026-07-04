@@ -3,6 +3,7 @@ import { get, post } from '../api'
 import { useAuth } from '../auth/AuthContext'
 import { useIssue } from '../context/IssueContext'
 import RunResult from '../components/RunResult'
+import FixturePicker from '../components/FixturePicker'
 
 const EST_COST = '~$0.03-0.07'
 
@@ -58,6 +59,13 @@ export default function CodeFixPage() {
     patchIssue({ title: ex.title, body: ex.body })
     setResult(null)
     setError('')
+  }
+
+  function loadFixture(f) {
+    patchIssue({ title: f.title, body: f.body })
+    setResult(null)
+    setError('')
+    setSavedId(null)
   }
 
   function clearAll() {
@@ -130,6 +138,8 @@ export default function CodeFixPage() {
           ⟳
         </button>
       </div>
+
+      <FixturePicker onLoad={loadFixture} />
 
       <label htmlFor="s2title">Issue title</label>
       <input
