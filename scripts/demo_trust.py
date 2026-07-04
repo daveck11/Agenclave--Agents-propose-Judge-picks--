@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# Trust ranking demo on the calc_bug fixture. Runs three canned candidate
-# patches through verify + trust_rank and prints the ranking. No agents, no
-# network.
+# Bucket 1 demo: verification-backed trust ranking on the controlled calc_bug
+# fixture. Runs each candidate patch through verify + trust_rank and prints the
+# ranking with evidence - the core thesis, no agents / no network.
 #
 #     python scripts/demo_trust.py
 
@@ -33,8 +33,9 @@ CANDIDATES = [
     ("gemini-3.1-flash-lite", "broken.diff"),
 ]
 
-# A little prior history so the reliability column has something to show.
-# (model, passed, failed) of past verified runs.
+# A little prior history so the reliability column has something to show. Seeded
+# ONLY from in-loop verification outcomes (here, a demo fixture) - never from any
+# SWE-bench grade. Each tuple: (model, passed, failed) of past verified runs.
 PRIOR_HISTORY = [
     ("claude-sonnet-4.6", 2, 8),  # resolved 2/10 historically
     ("gpt-5.4", 1, 9),
@@ -43,7 +44,7 @@ PRIOR_HISTORY = [
 
 
 def main() -> None:
-    # temp store so the real results file is never touched
+    # Isolate the demo store in a temp dir so we never touch the real results file.
     with tempfile.TemporaryDirectory() as tmp:
         store = f"{tmp}/model_reliability.json"
 
@@ -63,11 +64,12 @@ def main() -> None:
             cands.append(PatchResult(agent_name=name, instance_id="calc-add", patch=patch))
             vr = verify_patch(patch, REPO, TEST_CMD)
             vrs[name] = vr
-            # fold this run's outcome back into the store
+            # Fold THIS run's in-loop outcome back into the store - the trust loop
+            # learning from its own verification, the only signal it may use.
             rel.record_outcome(name, CATEGORY, vr.tests_passed, path=store)
 
         print("Task: fix add(a, b) so it returns a + b")
-        print("Which agent's patch do we trust?\n")
+        print("Which agent's patch do we trust? Verified, not guessed:\n")
         print(f"{'#':<3}{'agent':<26}{'tier':<20}{'reliability':<14}reason")
         ranking = trust_rank(cands, vrs, category=CATEGORY)
         for i, v in enumerate(ranking, 1):

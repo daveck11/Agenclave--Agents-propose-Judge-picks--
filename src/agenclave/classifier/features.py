@@ -31,9 +31,11 @@ def make_tfidf_vectorizer(
     max_features: int = 50_000,
     sublinear_tf: bool = True,
 ) -> TfidfVectorizer:
-    # Word 1-2 grams, min_df to drop rare noise, capped vocab. Sublinear tf
-    # helps because issue text is bursty (the same token repeated in a
-    # stack trace shouldn't dominate).
+    # Factory for the production TF-IDF vectorizer.
+    #
+    #     Word n-grams 1-2, `min_df` to drop rare noise, capped vocabulary, and
+    #     sublinear tf (1 + log(tf)) which helps with bursty issue text. English stop
+    #     words are removed to keep the vocabulary focused on signal tokens.
     return TfidfVectorizer(
         lowercase=True,
         stop_words="english",
@@ -46,9 +48,13 @@ def make_tfidf_vectorizer(
 
 
 class MiniLMEmbedder(BaseEstimator, TransformerMixin):
-    # sklearn transformer: text -> MiniLM sentence embeddings. Only used for
-    # the embeddings-vs-tfidf comparison in training; the served pipeline
-    # never loads this (it lost, see the results table).
+    # sklearn transformer: text -> MiniLM sentence embeddings (dense float32).
+    #
+    #     The sentence-transformers model is loaded lazily and cached on the instance
+    #     (and process-wide) so repeated `transform` calls reuse it. CPU-only.
+    #
+    #     Note: this is the "transformer variant" used purely for the lift comparison.
+    #     It is intentionally not part of any persisted serving pipeline.
 
     # Process-wide cache so multiple configs in one run share one model load.
     _MODEL_CACHE: dict = {}

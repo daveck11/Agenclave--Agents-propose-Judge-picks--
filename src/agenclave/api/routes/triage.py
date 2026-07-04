@@ -21,10 +21,10 @@ router = APIRouter()
 
 @router.get("/health")
 def health() -> dict:
-    # Liveness probe. Only checks that the model file exists, without loading
-    # it: the sklearn import + unpickle is slow on small hosts and used to
-    # time out Render's health check and 502 the deploy. The model itself
-    # loads lazily on the first real request (warmed in the background).
+    # Liveness probe. Reports whether the served model FILE is present WITHOUT loading
+    # it: loading (sklearn import + unpickle) is slow on small hosts and would time out
+    # the platform health check, causing a 502. The model loads lazily on the first
+    # real /triage or /runs request (and is warmed in the background at startup).
     models_loaded = TYPE_MODEL_PATH.exists()
     # Whether live Stage 2 dispatch can work (a provider key is configured). The UI
     # hides the Live toggle when this is false (e.g. a public demo with no keys).

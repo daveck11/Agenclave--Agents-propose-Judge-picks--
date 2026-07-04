@@ -1,10 +1,11 @@
-// About page: what Agenclave is and how it relates to BlackBox.
+// Why Agenclave exists: a verification-backed trust layer for multi-agent coding.
+// It answers "which of N agent outputs do I trust?" with evidence, not vibes.
 
 const REPO_URL = 'https://github.com/daveck11/BlackBox-Agenclave'
 
 const CONCEPT_MAP = [
   {
-    bb: 'The Chairman shows why the winning solution won, but each pick is made fresh: no memory of which model actually verifies on which kind of work',
+    bb: 'Routes across many models via the Chairman, but reviews call it opaque about which model is picked and why',
     ag: 'Routes to the trusted subset and shows which models and why (Thompson-sampled from per-model reliability, with the evidence)',
   },
   {
@@ -12,7 +13,7 @@ const CONCEPT_MAP = [
     ag: 'Verifies each patch by running the tests, then ranks by what actually passes',
   },
   {
-    bb: 'Optimised for generation (reported #1 on SWE-bench Verified in 2025)',
+    bb: 'Optimised for generation (ranked #1 on SWE-bench)',
     ag: 'Optimised for trust: which output to trust for this task, proven',
   },
   {

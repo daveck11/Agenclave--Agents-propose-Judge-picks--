@@ -52,30 +52,55 @@ def build_task_prompt(task: Task) -> str:
     return "\n".join(parts)
 
 
-# Matches a fenced code block, optionally tagged as diff or patch.
-_FENCE_RE = re.compile(
-    r"```(?:diff|patch)?\s*\n(?P<body>.*?)```",
+# XML-ish wrappers some models put around a diff (open or close forms).
+_WRAP_TAG_RE = re.compile(
+    r"</?(?:patch|diff|solution|code|answer|final)\s*>", re.IGNORECASE
+)
+# A line that is *only* a markdown code fence, e.g. ``` or ```diff. A real diff
+# line touching a fence is prefixed with +/-/space, so a bare fence is junk.
+_FENCE_LINE_RE = re.compile(r"^```[a-zA-Z]*[ \t]*$")
+# A well-formed fenced block, optionally tagged as diff or patch.
+_FENCE_BLOCK_RE = re.compile(
+    r"```(?:diff|patch)?[ \t]*\r?\n(?P<body>.*?)```",
     re.DOTALL | re.IGNORECASE,
 )
+_DIFF_MARKERS = ("diff --git ", "--- a/", "--- /", "Index: ")
 
 
 def extract_diff(text: str) -> str:
     """Pull a unified diff out of a model response.
 
-    Tries a fenced code block first, then the first diff marker, then just
-    returns the stripped response and lets the apply step reject it.
+    Robust to the wrappers models put around a diff, so a correct patch is not
+    rejected by `git apply` over a leaked ``` fence or a </patch> tag:
+      - strips XML-ish wrappers (<patch>...</patch>, <diff>..., <solution>...),
+      - prefers the body of a well-formed ``` / ```diff block,
+      - otherwise starts at the first real diff marker,
+      - drops any stray fence lines and trims surrounding blank lines.
+    Falls back to the raw response and lets the apply step reject it.
     """
     if not text:
         return ""
 
-    fenced = _FENCE_RE.search(text)
-    if fenced:
-        return fenced.group("body").strip() + "\n"
+    # Wrapper tags are never valid diff content; remove them wherever they sit.
+    text = _WRAP_TAG_RE.sub("", text)
 
-    # No fence: find the first plausible diff marker and take everything after.
-    for marker in ("diff --git ", "--- a/", "--- /", "Index: "):
-        idx = text.find(marker)
-        if idx != -1:
-            return text[idx:].strip() + "\n"
+    block = _FENCE_BLOCK_RE.search(text)
+    if block:
+        text = block.group("body")
+    else:
+        # No clean fence: start at the first plausible diff marker.
+        for marker in _DIFF_MARKERS:
+            idx = text.find(marker)
+            if idx != -1:
+                text = text[idx:]
+                break
 
-    return text.strip()
+    # Drop leaked fence lines, then trim blank lines around the diff.
+    lines = [ln for ln in text.splitlines() if not _FENCE_LINE_RE.match(ln)]
+    while lines and not lines[0].strip():
+        lines.pop(0)
+    while lines and not lines[-1].strip():
+        lines.pop()
+
+    body = "\n".join(lines)
+    return body + "\n" if body.strip() else ""

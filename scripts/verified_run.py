@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
-# Live verified runs. For each fixture task, dispatch to the configured
-# agents, apply and test every candidate with verify_patch, record pass/fail
-# into the reliability store, and print the trust ranking. Repeated runs are
-# what build up the per-model track record the router uses.
+# Round 5: live verified runs -> real per-model reliability.
 #
-# This script is the only thing that writes reliability data, and the signal
-# is each task's own tests, not a SWE-bench grade (see reliability.py for
-# why that matters).
+# For each task that ships with its OWN runnable tests, dispatch to the configured
+# agents (live), verify each candidate by applying it and running those tests
+# (harness/verify.verify_patch), record the pass/fail into the reliability store
+# (harness/reliability.record_outcome), and print the trust ranking. Over many
+# runs this accumulates the genuine per-model track record the router draws on.
 #
-# Dry-run by default so you can't spend credits by accident.
+# HONESTY: the trust signal is each task's OWN in-loop tests - NEVER a hidden
+# SWE-bench FAIL_TO_PASS grade. This script is the only path that writes reliability
+# data, and it only writes what verify_patch actually observed.
+#
+# Dry-run by default (no API calls). --live dispatches to the provider (spends).
 #
 #   python scripts/verified_run.py --dry-run
 #   python scripts/verified_run.py --live
@@ -17,7 +20,6 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import json
 import sys
 from pathlib import Path
 
@@ -30,8 +32,8 @@ from agenclave.harness.reliability import record_outcome, reliability  # noqa: E
 from agenclave.harness.trust import trust_rank  # noqa: E402
 from agenclave.harness.verify import verify_patch  # noqa: E402
 
-# Self-contained fixtures, each with its own tests. More tasks here means
-# better reliability data.
+# Task library: self-contained fixtures, each with its own tests. `category` is the
+# task kind (feeds per-category reliability). Grow this list for richer signal.
 TASKS = [
     {
         "id": "calc-add",
@@ -77,7 +79,7 @@ TASKS = [
 ]
 
 
-async def _run_task(t: dict, agents, live: bool, log: list) -> None:
+async def _run_task(t: dict, agents, live: bool) -> None:
     task = Task(
         instance_id=t["id"],
         repo=str(t["repo"]),
@@ -95,20 +97,12 @@ async def _run_task(t: dict, agents, live: bool, log: list) -> None:
     for c in candidates:
         if not c.ok:
             print(f"  {c.agent_name:<46} dispatch=err: {c.error}")
-            log.append({"task": t["id"], "agent": c.agent_name, "dispatch_error": c.error})
             continue
         vr = verify_patch(c.patch, t["repo"], t["test_cmd"])
         vrs[c.agent_name] = vr
+        # Honest: reliability is fed ONLY by this in-loop verification result.
         record_outcome(c.agent_name, t["category"], vr.tests_passed)
         print(f"  {c.agent_name:<46} applies={vr.applies} tests_passed={vr.tests_passed}")
-        # keep enough evidence to explain a failure afterwards
-        log.append({
-            "task": t["id"], "agent": c.agent_name,
-            "applies": vr.applies, "tests_passed": vr.tests_passed,
-            "passed": vr.passed, "total": vr.total, "error": vr.error,
-            "evidence_tail": vr.evidence[-800:],
-            "patch": c.patch,
-        })
 
     ranking = trust_rank(candidates, vrs, category=t["category"])
     print("  trust ranking:")
@@ -121,24 +115,20 @@ async def _amain(args: argparse.Namespace) -> None:
     print(f"provider={settings.provider} live={args.live}")
     print(f"models: {models}")
     agents = build_agents(settings.provider, models) if args.live else []
-    log: list = []
     for t in TASKS:
-        await _run_task(t, agents, args.live, log)
+        await _run_task(t, agents, args.live)
 
     if args.live:
         print("\nUpdated reliability (category=bug):")
         for m in models:
             est, passed, total = reliability(m, "bug")
             print(f"  {m:<46} {passed}/{total}  est={est:.3f}")
-        log_path = ROOT / "results" / "verified_run_last.json"
-        log_path.write_text(json.dumps(log, indent=2), encoding="utf-8")
-        print("\nWrote results/model_reliability.json")
-        print(f"Wrote {log_path} (per-candidate patches + test evidence)")
+        print("\nWrote results/model_reliability.json - the router now has real data.")
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(
-        description="Run agents on fixture tasks and record verified reliability."
+        description="Round 5: live verified runs -> per-model reliability."
     )
     ap.add_argument("--live", action="store_true", help="dispatch to the provider (spends credits)")
     ap.add_argument("--dry-run", action="store_true", help="no API calls (default)")

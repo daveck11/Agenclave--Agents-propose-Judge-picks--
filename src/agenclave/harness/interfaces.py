@@ -1,6 +1,8 @@
-# Shared types for the harness. Dispatch, the judge and evaluation only
-# depend on these, so any agent (Claude, OpenAI, BlackBox) can sit behind
-# the Agent interface without the rest of the code caring.
+# Provider-agnostic contracts for the Chairman harness.
+#
+# The whole point of Stage 2 is that *any* coding agent, Claude, OpenAI, or the
+# BlackBox Agents API, is interchangeable behind `Agent`. Dispatch, the Chairman
+# judge, and evaluation all depend only on these types, never on a vendor SDK.
 
 from __future__ import annotations
 
@@ -10,8 +12,10 @@ from dataclasses import dataclass, field
 
 @dataclass(frozen=True)
 class Task:
-    # One coding task handed to the agents. triage_label/triage_severity come
-    # from the stage 1 classifier when it has run.
+    # A coding task handed to the agents.
+    #
+    #     `triage_label`/`triage_severity` are populated by the Stage 1 classifier
+    #     (the "front door") so agents get the issue annotated, not raw.
 
     instance_id: str
     repo: str
@@ -58,6 +62,6 @@ class Agent(ABC):
 
     @abstractmethod
     async def propose_patch(self, task: Task) -> PatchResult:
-        # shouldn't raise for normal failures; put them in PatchResult.error
-        # so dispatch can keep the other candidates
+        # Produce a candidate patch. Must not raise for normal failures  - 
+        #         capture them in `PatchResult.error` so dispatch can keep the others.
         raise NotImplementedError

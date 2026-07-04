@@ -1,10 +1,18 @@
-# Ranks candidate patches by what verification showed: does the patch apply,
-# and do the tests pass. How the diff reads doesn't enter into it.
+# Trust ranking - the Chairman reborn as a verifier.
 #
-# Two softer signals sit on top but can't override the verification result:
-# per-model reliability (reliability.py) breaks ties between candidates that
-# did equally well on this task, and a weak triage confidence tags every
-# verdict with a caution so someone double-checks the label.
+# Given candidate patches and their VerifyResults, rank them by DEMONSTRATED
+# trustworthiness (what actually applies and passes) rather than by how a diff
+# reads. This answers the product's core question - "which of these agent outputs
+# do I trust?" - with evidence, not vibes.
+#
+# Two trained signals are fused on top of that verification spine, but neither can
+# override it:
+#   * per-model reliability (harness/reliability.py) - how often this model's
+#     patches have passed in-loop verification before. Used only to break ties
+#     between candidates that are equally good on the CURRENT task.
+#   * triage confidence (Stage 1 classifier) - when the front-door label is weak,
+#     the whole verdict set is flagged for a human second look.
+# Hard verification evidence on this task always dominates the ranking.
 
 from __future__ import annotations
 
@@ -14,8 +22,9 @@ from .interfaces import PatchResult
 from .reliability import reliability as _reliability
 from .verify import VerifyResult
 
-# Same threshold the recommender uses, so both stages agree on what "low
-# confidence" means.
+# Confidence below this is "weak" -> annotate the verdicts with a caution. Reused
+# from the Stage 1 recommender so the trust layer and the front door agree on the
+# threshold.
 from ..classifier.recommend import LOW_CONFIDENCE
 
 # Trust tiers, best first.
@@ -58,6 +67,7 @@ def _verdict(candidate: PatchResult, vr: VerifyResult | None) -> TrustVerdict:
 
 
 def _reliability_phrase(passed: int, total: int) -> str:
+    # Human-readable evidence for the reason string.
     if total == 0:
         return "no track record yet"
     return f"this model resolved {passed}/{total} bugs historically"
@@ -70,13 +80,13 @@ def trust_rank(
     category: str | None = None,
     triage_confidence: float | None = None,
 ) -> list[TrustVerdict]:
-    """Rank candidates best-first.
-
-    Verification tier decides the order. Ties go to the model with better
-    learned reliability, then to the smaller diff (less to review if it's
-    wrong). `category` is the triage label used for the reliability lookup;
-    a weak `triage_confidence` appends a caution to every reason.
-    """
+    # Rank candidates best-first. Verification tier is PRIMARY. Within an equal
+    # tier+score, tiebreak by learned reliability (higher first), then by
+    # minimality - a smaller verified diff is preferred (less collateral surface).
+    #
+    # `category` (the Stage 1 triage label) enables the reliability lookup and its
+    # mention in the reason. `triage_confidence`, when weak, appends a caution to
+    # every verdict - the trained front-door signal, fused but non-overriding.
     patch_len = {c.agent_name: len(c.patch or "") for c in candidates}
     verdicts = [_verdict(c, verify_results.get(c.agent_name)) for c in candidates]
 

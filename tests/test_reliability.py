@@ -1,5 +1,7 @@
-# Reliability store tests. Reliability is a Laplace-smoothed pass rate per
-# (model, category), written only by in-loop verification.
+# Bucket 2A: per-model reliability learned from in-loop verification outcomes.
+#
+# Reliability is a Beta(1,1)-smoothed pass rate per (model, category), fed ONLY by
+# the trust loop's own verification - never by any out-of-loop SWE-bench grade.
 
 from __future__ import annotations
 

@@ -45,9 +45,11 @@ TASKS: dict[str, dict] = {
 
 @dataclass
 class Split:
-    # One deterministic train/val/test split. X_* are text (title + body),
-    # y_* are labels, ids_* keep the original row ids so the tests can check
-    # for leakage.
+    # One deterministic train/val/test split for a task.
+    #
+    #     `X_*` are text Series (title + body); `y_*` are label Series. `ids_*`
+    #     carry the original row ids so leakage can be asserted in tests. `classes`
+    #     is the canonical class list for the task.
 
     task: str
     classes: list[str]
@@ -90,10 +92,10 @@ def load_task_frame(task: str) -> pd.DataFrame:
     df = df[df["text"].str.strip() != ""].copy()
     # Keep only known classes (defensive; prepare_data already enforces this).
     df = df[df[label_col].isin(cfg["classes"])].copy()
-    # Drop exact-duplicate texts before splitting, otherwise the same issue
-    # text can land in both train and test and inflate the held-out metrics.
-    # Can't dedupe on `id`: it's the per-repo issue number, not globally
-    # unique.
+    # Drop exact-duplicate texts BEFORE splitting. Identical issue text in two
+    # rows would otherwise be able to land in both train and test, inflating the
+    # held-out metrics (text-level leakage). NB: the `id` column is the per-repo
+    # issue number and is NOT globally unique, so it cannot be used for this.
     df = df.drop_duplicates(subset="text", keep="first")
     return df.reset_index(drop=True)
 
@@ -104,9 +106,11 @@ def make_split(
     val_size: float = 0.15,
     seed: int = SEED,
 ) -> Split:
-    # Stratified split, test carved out first and then val from the rest,
-    # so the three sets are disjoint and keep the class balance. Fixed seed
-    # makes it reproducible.
+    # Deterministic stratified train/val/test split for `task`.
+    #
+    #     Two-stage stratified split (test carved first, then val from the remainder)
+    #     so train/val/test are disjoint by row and each preserves the class balance.
+    #     Fixed `seed` makes the partition fully reproducible.
     cfg = TASKS[task]
     label_col = cfg["label_col"]
     df = load_task_frame(task)

@@ -39,6 +39,41 @@ def test_extract_diff_empty():
     assert extract_diff("") == ""
 
 
+def test_extract_diff_strips_patch_tags():
+    # Some models wrap the diff in <patch>...</patch>; the closing tag must not
+    # leak into the patch (it makes `git apply` reject an otherwise-good fix).
+    text = (
+        "<patch>\n"
+        "diff --git a/mathx.py b/mathx.py\n"
+        "--- a/mathx.py\n+++ b/mathx.py\n"
+        "@@ -1,2 +1,2 @@\n"
+        "-    if n == 1:\n"
+        "+    if n == 0 or n == 1:\n"
+        "</patch>\n"
+    )
+    out = extract_diff(text)
+    assert out.startswith("diff --git a/mathx.py")
+    assert "+    if n == 0 or n == 1:" in out
+    assert "</patch>" not in out and "<patch>" not in out
+
+
+def test_extract_diff_strips_trailing_fence():
+    # A bare diff followed by a leaked closing ``` must come back fence-free.
+    text = (
+        "diff --git a/acc.py b/acc.py\n"
+        "--- a/acc.py\n+++ b/acc.py\n"
+        "@@ -1,2 +1,3 @@\n"
+        " def collect(value, into=None):\n"
+        "+    if into is None:\n"
+        "+        into = []\n"
+        "```\n"
+    )
+    out = extract_diff(text)
+    assert "```" not in out
+    assert "+        into = []" in out
+    assert out.rstrip().endswith("into = []")
+
+
 # --- build_agents factory -----------------------------------------------------
 def test_build_agents_direct():
     agents = build_agents("direct", ["claude-sonnet-4-6", "gpt-4o-mini"])

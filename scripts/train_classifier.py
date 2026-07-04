@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # Train + select the Stage 1 triage classifier(s).
 #
-# Only the issue-type head ships. By default this trains just that head;
-# pass `--with-severity` to also train the severity head (opt-in,
+# The shipped deliverable is **type-only**. By default this trains just the issue
+# -type head; pass `--with-severity` to ALSO train the severity head (opt-in,
 # local experimentation only, the source is citation-only, not shipped; see
 # data/README.md). The matching processed CSV must exist first
 # (`scripts/prepare_data.py` / `scripts/prepare_data.py --with-severity`).
@@ -11,11 +11,11 @@
 # randomforest}, selects by validation macro-F1, and persists:
 #
 # - `models/type_clf.joblib` (and `models/severity_clf.joblib` when
-#   `--with-severity`), the best TF-IDF pipeline per task (the torch-free
+#   `--with-severity`), the best **TF-IDF** pipeline per task (the torch-free
 #   production model the API serves).
 # - `models/metadata.json`, class lists, chosen configs, embedding lift,
 #   and which model is served.
-# - `models/_trained_configs.joblib`, every fitted config (incl. MiniLM) plus
+# - `models/_trained_configs.joblib`, ALL fitted configs (incl. MiniLM) plus
 #   the deterministic splits, so `scripts/evaluate_classifier.py` can score
 #   every config on the held-out test set without retraining. (Internal artifact;
 #   contains the MiniLM pipelines, so loading it requires torch.)

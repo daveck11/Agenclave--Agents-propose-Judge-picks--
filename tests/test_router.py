@@ -1,6 +1,8 @@
-# Router tests. The router picks the top-k subset that runs, never the
-# winner (that stays with verification). These pin the selection contract
-# and the explore/exploit behaviour.
+# Round 3: task->model routing via Thompson sampling over per-model reliability.
+#
+# The router picks a trusted top-k SUBSET (the prior - who runs), never the winner
+# (that stays with verification). These tests pin the selection contract and the
+# explore/exploit behaviour that motivates Thompson sampling over a greedy pick.
 
 from __future__ import annotations
 
