@@ -1,8 +1,6 @@
-# Provider-agnostic contracts for the Chairman harness.
-#
-# The whole point of Stage 2 is that *any* coding agent, Claude, OpenAI, or the
-# BlackBox Agents API, is interchangeable behind `Agent`. Dispatch, the Chairman
-# judge, and evaluation all depend only on these types, never on a vendor SDK.
+# Shared types for the harness. Dispatch, the judge and evaluation only
+# depend on these, so any agent (Claude, OpenAI, BlackBox) can sit behind
+# the Agent interface without the rest of the code caring.
 
 from __future__ import annotations
 
@@ -12,10 +10,8 @@ from dataclasses import dataclass, field
 
 @dataclass(frozen=True)
 class Task:
-    # A coding task handed to the agents.
-    #
-    #     `triage_label`/`triage_severity` are populated by the Stage 1 classifier
-    #     (the "front door") so agents get the issue annotated, not raw.
+    # One coding task handed to the agents. triage_label/triage_severity come
+    # from the stage 1 classifier when it has run.
 
     instance_id: str
     repo: str
@@ -24,6 +20,10 @@ class Task:
     hints: str | None = None
     triage_label: str | None = None
     triage_severity: str | None = None
+    # Current contents of the file(s) the agent should edit, {path: source}. When
+    # present, the agent is shown the exact code (so it diffs against real content
+    # instead of guessing the file). Empty for the issue-text-only web path.
+    files: dict = field(default_factory=dict)
     metadata: dict = field(default_factory=dict)
 
 
@@ -62,6 +62,6 @@ class Agent(ABC):
 
     @abstractmethod
     async def propose_patch(self, task: Task) -> PatchResult:
-        # Produce a candidate patch. Must not raise for normal failures  - 
-        #         capture them in `PatchResult.error` so dispatch can keep the others.
+        # shouldn't raise for normal failures; put them in PatchResult.error
+        # so dispatch can keep the other candidates
         raise NotImplementedError

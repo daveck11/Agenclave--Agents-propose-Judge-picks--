@@ -56,13 +56,13 @@ export default function CodeFixPage() {
   const [saving, setSaving] = useState(false)
 
   function loadExample(ex) {
-    patchIssue({ title: ex.title, body: ex.body })
+    patchIssue({ title: ex.title, body: ex.body, fixtureId: null })
     setResult(null)
     setError('')
   }
 
   function loadFixture(f) {
-    patchIssue({ title: f.title, body: f.body })
+    patchIssue({ title: f.title, body: f.body, fixtureId: f.id })
     setResult(null)
     setError('')
     setSavedId(null)
@@ -83,7 +83,14 @@ export default function CodeFixPage() {
     setStatus('running')
     try {
       // Runs are not auto-saved; the user keeps one with the Save run button.
-      const data = await post('/runs', { title, body, live })
+      // fixture_id (when the issue came from a practice bug) makes the backend
+      // show the agents the file and verify each candidate against its tests.
+      const data = await post('/runs', {
+        title,
+        body,
+        live,
+        fixture_id: current.fixtureId || null,
+      })
       setResult(data)
       setStatus('done')
     } catch (err) {

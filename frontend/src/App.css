@@ -247,6 +247,83 @@
   color: var(--text-muted);
 }
 
+/* Verification panel (fixture runs): who actually passed the tests. */
+.verify {
+  margin: 16px 0 4px;
+}
+
+.verify-table {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.verify-row {
+  display: grid;
+  grid-template-columns: 1.4fr 0.6fr 1fr 0.7fr;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card-grad);
+  font-size: 13px;
+}
+
+.verify-head {
+  border: none;
+  background: none;
+  padding: 0 12px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.verify-model {
+  font-weight: 700;
+}
+
+.verify-num {
+  font-family: var(--mono);
+  color: var(--text-muted);
+}
+
+.verify-tier {
+  font-weight: 600;
+}
+
+.verify-tier.tier-trusted {
+  color: var(--good);
+}
+
+.verify-tier.tier-applies_but_fails,
+.verify-tier.tier-broken {
+  color: var(--error-text);
+}
+
+.verify-row.verified-win {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-bg);
+}
+
+.verify-callout {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: var(--accent-bg);
+  color: var(--text);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.verify-callout code {
+  font-weight: 700;
+  color: var(--accent-text);
+}
+
 form {
   display: flex;
   flex-direction: column;

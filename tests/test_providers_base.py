@@ -39,6 +39,25 @@ def test_extract_diff_empty():
     assert extract_diff("") == ""
 
 
+def test_build_task_prompt_shows_the_file_when_present():
+    # A fixture/repo run hands the agent the exact file; the blind path does not.
+    from agenclave.harness.interfaces import Task
+    from agenclave.harness.providers.base import build_task_prompt
+
+    with_file = Task(
+        instance_id="x",
+        repo="r",
+        problem_statement="add() is wrong",
+        files={"calc.py": "def add(a, b):\n    return a - b\n"},
+    )
+    prompt = build_task_prompt(with_file)
+    assert "calc.py" in prompt
+    assert "return a - b" in prompt
+
+    blind = Task(instance_id="x", repo="r", problem_statement="add() is wrong")
+    assert "calc.py" not in build_task_prompt(blind)
+
+
 def test_extract_diff_strips_patch_tags():
     # Some models wrap the diff in <patch>...</patch>; the closing tag must not
     # leak into the patch (it makes `git apply` reject an otherwise-good fix).

@@ -50,3 +50,69 @@ def test_fixtures_api_list_and_detail(client):
     assert body["code"].strip()  # the buggy file content is returned
 
     assert client.get("/fixtures/nope").status_code == 404
+
+
+def test_fixture_run_feeds_the_file_and_verifies(client, monkeypatch):
+    # A fixture run shows the agent the file and verifies each candidate against
+    # the fixture's real tests. Triage is forced to `bug` so the gate opens; the
+    # dispatch is faked to return a genuinely-correct calc-add patch, and the real
+    # verify_patch runs the fixture's tests (no provider call, no reliability write).
+    from agenclave.api.routes import runs as runs_mod
+    from agenclave.harness.interfaces import PatchResult
+
+    monkeypatch.setattr(
+        runs_mod,
+        "predict_triage",
+        lambda title, body="": {
+            "label": "bug",
+            "label_confidence": 0.9,
+            "severity": None,
+            "top_tokens": ["bug"],
+        },
+    )
+    monkeypatch.setattr(runs_mod, "build_agents", lambda provider, models: ["agent"])
+
+    correct = (
+        "--- a/calc.py\n+++ b/calc.py\n@@ -1,2 +1,2 @@\n"
+        " def add(a, b):\n-    return a - b\n+    return a + b\n"
+    )
+
+    async def _fake_dispatch(task, agents):
+        # The agent must have been shown the fixture's file.
+        assert "return a - b" in task.files.get("calc.py", "")
+        return [PatchResult(agent_name="gpt", instance_id=task.instance_id, patch=correct)]
+
+    class _FakeChairman:
+        def __init__(self, model, **kwargs):
+            self.model = model
+
+        async def judge(self, task, candidates):
+            from types import SimpleNamespace
+
+            return SimpleNamespace(
+                selected_agent="gpt",
+                ranking=["gpt"],
+                rationale="looks right",
+                synthesized_patch=None,
+            )
+
+    monkeypatch.setattr(runs_mod, "dispatch", _fake_dispatch)
+    monkeypatch.setattr(runs_mod, "Chairman", _FakeChairman)
+
+    resp = client.post(
+        "/runs",
+        json={
+            "title": "add is wrong",
+            "body": "add returns a - b",
+            "live": True,
+            "fixture_id": "calc-add",
+        },
+    )
+    assert resp.status_code == 200
+    out = resp.json()
+    assert out["fixture"]["id"] == "calc-add"
+    verification = out["verification"]
+    assert verification and verification[0]["agent"] == "gpt"
+    assert verification[0]["applies"] is True
+    assert verification[0]["tests_passed"] is True
+    assert out["verified_winner"] == "gpt"

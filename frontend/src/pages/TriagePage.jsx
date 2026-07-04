@@ -53,14 +53,14 @@ export default function TriagePage() {
   const [saved, setSaved] = useState(false)
 
   function loadExample(ex) {
-    patchIssue({ title: ex.title, body: ex.body, triage: null })
+    patchIssue({ title: ex.title, body: ex.body, triage: null, fixtureId: null })
     setResult(null)
     setError('')
     setSaved(false)
   }
 
   function loadFixture(f) {
-    patchIssue({ title: f.title, body: f.body, triage: null })
+    patchIssue({ title: f.title, body: f.body, triage: null, fixtureId: f.id })
     setResult(null)
     setError('')
     setSaved(false)
@@ -95,7 +95,7 @@ export default function TriagePage() {
   }
 
   function sendToCodeFix() {
-    setIssue({ title, body, triage: result })
+    setIssue({ title, body, triage: result, fixtureId: current.fixtureId })
     navigate('/code-fix')
   }
 

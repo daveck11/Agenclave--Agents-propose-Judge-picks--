@@ -5,7 +5,9 @@ import { createContext, useContext, useEffect, useState } from 'react'
 // (and triage result) survive a page refresh.
 const IssueContext = createContext(null)
 const STORAGE_KEY = 'agenclave_issue'
-const EMPTY = { title: '', body: '', triage: null }
+// fixtureId is set when the issue was loaded from a practice-bug fixture; the
+// Code-fix run passes it so the agents get shown the file and are verified.
+const EMPTY = { title: '', body: '', triage: null, fixtureId: null }
 
 function load() {
   try {
@@ -30,8 +32,8 @@ export function IssueProvider({ children }) {
   }, [current])
 
   // Replace the whole current issue (used for the Triage -> Code-fix hand-off).
-  function setIssue({ title = '', body = '', triage = null }) {
-    setCurrent({ title, body, triage })
+  function setIssue({ title = '', body = '', triage = null, fixtureId = null }) {
+    setCurrent({ title, body, triage, fixtureId })
   }
 
   // Update just the editable text (used by the Code-fix form).

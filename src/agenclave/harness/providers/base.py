@@ -45,6 +45,16 @@ def build_task_prompt(task: Task) -> str:
         parts.append("")
         parts.append("Hints:")
         parts.append(task.hints.strip())
+    if task.files:
+        parts.append("")
+        parts.append(
+            "Current contents of the file(s) to change. Produce your diff against "
+            "EXACTLY this content - use the real path, minimal surrounding context, "
+            "and do not invent any code that is not shown here:"
+        )
+        for name, content in task.files.items():
+            parts.append(f"### {name}")
+            parts.append(content.rstrip("\n"))
     parts.append("")
     parts.append(
         "Produce the unified diff that fixes this issue. Output only the diff."

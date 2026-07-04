@@ -50,6 +50,11 @@ class RunRequest(BaseModel):
         None,
         description="Optional saved-issue id to associate the run with (authed only).",
     )
+    fixture_id: str | None = Field(
+        None,
+        description="Optional practice-bug fixture id. When set, the agents are shown "
+        "the fixture's file and each candidate patch is verified against its tests.",
+    )
 
     @field_validator("title", "body")
     @classmethod
@@ -85,12 +90,8 @@ class Recommendation(BaseModel):
 
 
 class TriageResponse(BaseModel):
-    # The triage prediction returned to clients.
-    #
-    #     The shipped deliverable is type-only, so `severity` / `severity_confidence`
-    #     are nullable: they are populated only when the optional severity head is
-    #     present, and `None` otherwise. `recommendations` /
-    #     `can_proceed_to_stage2` come from the deterministic recommender.
+    # Triage prediction returned to clients. severity fields are null unless
+    # the optional severity model is present (the shipped model is type-only).
 
     label: str = Field(..., description="Predicted issue type.")
     confidence: float = Field(..., description="Confidence in the TYPE label (0-1).")

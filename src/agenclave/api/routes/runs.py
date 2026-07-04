@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
@@ -16,7 +17,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...classifier.predict import ModelsNotTrained, predict_triage
 from ...config import settings
+from ...fixtures import get_fixture
 from ...harness import Chairman, Task, build_agents, dispatch, route
+from ...harness.trust import trust_rank
+from ...harness.verify import verify_patch
 from ..auth import get_current_user, get_optional_user
 from ..db import get_session
 from ..models import Run, User
@@ -55,12 +59,9 @@ async def run_pipeline(
     user: User | None = Depends(get_optional_user),
     session: AsyncSession = Depends(get_session),
 ) -> dict:
-    # The full pipeline, end to end, with Stage 1 as the *gate* for Stage 2:
-    #
-    #   1. Triage the issue (Stage 1 front door).
-    #   2. Gate: only a `bug` proceeds; non-bugs are filtered out at $0 cost.
-    #   3. If it passed the gate AND `live` is set, dispatch to N agents and let
-    #      the Chairman judge (Stage 2). Otherwise it's a dry run (no API calls).
+    # Full pipeline: triage the issue, gate on the label (only a bug goes
+    # further), then if `live` is set dispatch to the routed agents and let
+    # the Chairman judge. Without `live` it stops before any API call.
     try:
         tri = predict_triage(req.title, req.body)
     except ModelsNotTrained as exc:
@@ -72,14 +73,15 @@ async def run_pipeline(
     label = tri["label"]
     passed = label == "bug"
     models = settings.agent_model_list
+    # Optional practice-bug fixture: when set, the agents are shown its file and
+    # each candidate is verified against its own tests (the real trust loop).
+    fixture = get_fixture(req.fixture_id) if req.fixture_id else None
 
-    # Trust-scored routing (Round 4): when the gate passes, pick the trusted subset
-    # of the panel for this category instead of always dispatching all of it. This
-    # is a READ-ONLY prior over per-model reliability - the web run judges with the
-    # Chairman LLM and has no repo checkout / no verify_patch, so it produces no
-    # in-loop verification signal and deliberately does NOT call record_outcome
-    # (that would fabricate or leak the eval signal). Verification, when it exists,
-    # remains the only thing that updates trust.
+    # When the gate passes, route to a subset of the panel instead of always
+    # dispatching everyone. Read-only: a web run has no repo checkout, so
+    # there is no verify_patch result here, and we must not call
+    # record_outcome without one (writing the judge's opinion into the
+    # reliability store would defeat the point of it).
     routing = route(label, models, settings.route_k) if passed else None
     run_models = routing.selected if routing else models
 
@@ -127,19 +129,21 @@ async def run_pipeline(
         "selected_patch": "",
     }
 
-    # Gate closed (non-bug) or a dry run → stop before any live dispatch.
     if passed and req.live:
-        # Stage 2 live dispatch.
         statement = f"{req.title}\n\n{req.body}".strip()
         task = Task(
-            instance_id="web-run",
-            repo="(web demo - issue text only, no repo checkout)",
+            instance_id=fixture.id if fixture else "web-run",
+            repo=(
+                str(fixture.repo)
+                if fixture
+                else "(web demo - issue text only, no repo checkout)"
+            ),
             problem_statement=statement,
             triage_label=label,
             triage_severity=tri.get("severity"),
+            files={fixture.module: fixture.buggy_code()} if fixture else {},
         )
         try:
-            # Only the routed (trusted) subset is dispatched - not the full panel.
             agents = build_agents(settings.provider, run_models)
             chairman = Chairman(settings.chairman_model)
             candidates = await dispatch(task, agents)
@@ -172,7 +176,37 @@ async def run_pipeline(
         )
         out["cost"]["spent_usd"] = round(projection, 4)
 
-    # Runs are NOT auto-saved. The user keeps a run explicitly via POST /runs/save.
+        # A fixture ships real tests, so verify here instead of only judging by
+        # reading: apply each candidate in a sandbox, run the tests, and rank by
+        # what actually passes. verify_patch is blocking (subprocess), so keep it
+        # off the event loop. This deliberately does NOT write reliability - that
+        # stays scripts/verified_run.py's job (see harness/reliability.py).
+        if fixture is not None:
+            vrs = {}
+            for c in candidates:
+                if c.ok:
+                    vrs[c.agent_name] = await asyncio.to_thread(
+                        verify_patch, c.patch, fixture.repo, fixture.test_cmd
+                    )
+            ranking = trust_rank(candidates, vrs, category=label)
+            out["fixture"] = {"id": fixture.id, "module": fixture.module}
+            out["verification"] = [
+                {
+                    "agent": v.agent_name,
+                    "tier": v.tier,
+                    "reason": v.reason,
+                    "applies": bool(v.agent_name in vrs and vrs[v.agent_name].applies),
+                    "tests_passed": bool(
+                        v.agent_name in vrs and vrs[v.agent_name].tests_passed
+                    ),
+                    "passed": vrs[v.agent_name].passed if v.agent_name in vrs else 0,
+                    "total": vrs[v.agent_name].total if v.agent_name in vrs else 0,
+                }
+                for v in ranking
+            ]
+            out["verified_winner"] = ranking[0].agent_name if ranking else None
+
+    # runs are never auto-saved; the user keeps one via POST /runs/save
     return out
 
 
