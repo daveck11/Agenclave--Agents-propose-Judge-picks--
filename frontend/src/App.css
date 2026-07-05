@@ -247,9 +247,15 @@
   color: var(--text-muted);
 }
 
-/* Verification panel (fixture runs): who actually passed the tests. */
+/* Verification panel (fixture runs): note that the tests were run. */
 .verify {
   margin: 16px 0 4px;
+}
+
+.verify-note {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 6px 0 0;
 }
 
 .verify-table {

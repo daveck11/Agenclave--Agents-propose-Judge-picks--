@@ -90,50 +90,26 @@ function Routing({ routing }) {
 // applies each patch and runs the tests. This shows who passed - and, when the
 // Chairman's read-the-patch pick differs from what the tests prove, calls it out.
 function Verification({ verification, verifiedWinner, chairmanWinner, fixture }) {
+  const winner = (verification || []).find((v) => v.agent === verifiedWinner)
+  const winnerPassed = winner && winner.tier === 'trusted'
+  // Only surface the judge-vs-tests contrast when the tests actually crown a
+  // different, passing winner - otherwise it would be misleading.
   const disagree =
-    verifiedWinner && chairmanWinner && verifiedWinner !== chairmanWinner
-  const label = (tier) =>
-    tier === 'trusted'
-      ? '✓ tests pass'
-      : tier === 'applies_but_fails'
-      ? '✗ tests fail'
-      : '✗ does not apply'
+    winnerPassed && chairmanWinner && verifiedWinner !== chairmanWinner
 
   return (
     <div className="verify">
       <div className="stage-label">
         Verification - ran the tests{fixture?.module ? ` (${fixture.module})` : ''}
       </div>
-      <div className="verify-table">
-        <div className="verify-row verify-head">
-          <span>model</span>
-          <span>tests</span>
-          <span>result</span>
-          <span></span>
-        </div>
-        {verification.map((v) => {
-          const win = v.agent === verifiedWinner
-          return (
-            <div className={`verify-row tier-${v.tier}${win ? ' verified-win' : ''}`} key={v.agent}>
-              <span className="verify-model">{modelName(v.agent)}</span>
-              <span className="verify-num">
-                {v.total ? `${v.passed}/${v.total}` : '-'}
-              </span>
-              <span className={`verify-tier tier-${v.tier}`}>{label(v.tier)}</span>
-              <span>{win && <span className="badge-win">verified</span>}</span>
-            </div>
-          )
-        })}
-      </div>
-      {disagree ? (
+      <p className="verify-note">
+        Each candidate patch was applied in a sandbox and its tests were run.
+      </p>
+      {disagree && (
         <div className="verify-callout">
           The Chairman picked <code>{modelName(chairmanWinner)}</code> by reading the
           patches - but running the tests proves <code>{modelName(verifiedWinner)}</code>{' '}
           is the one that actually works. Verification, not the judge, decides.
-        </div>
-      ) : (
-        <div className="honesty">
-          Ranked by what actually passes the tests, not by how the patch reads.
         </div>
       )}
     </div>
