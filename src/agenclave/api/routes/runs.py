@@ -19,6 +19,7 @@ from ...classifier.predict import ModelsNotTrained, predict_triage
 from ...config import settings
 from ...fixtures import get_fixture
 from ...harness import Chairman, Task, build_agents, dispatch, route
+from ...harness.reliability import record_outcome
 from ...harness.trust import trust_rank
 from ...harness.verify import verify_patch
 from ..auth import get_current_user, get_optional_user
@@ -198,6 +199,13 @@ async def run_pipeline(
                     *(_verify(c) for c in candidates if c.ok)
                 )
                 vrs = dict(results)
+                # A fixture ships real tests, so this IS in-loop verification -
+                # record each outcome so the router builds a genuine track record
+                # as the app is used. The no-leakage rule only bars a held-out
+                # grade (which this is not); the non-fixture web path still records
+                # nothing because it has no verification.
+                for name, vr in vrs.items():
+                    record_outcome(name, label, vr.tests_passed)
                 ranking = trust_rank(candidates, vrs, category=label)
                 out["verification"] = [
                     {

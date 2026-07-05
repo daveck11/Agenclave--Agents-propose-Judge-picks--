@@ -92,7 +92,93 @@ def _apply(patch: str, sandbox: Path) -> tuple[bool, str]:
         if proc.returncode == 0:
             return True, f"applied ({' '.join(extra) or 'exact'})"
         last = (proc.stderr or proc.stdout).decode("utf-8", "replace")
+    # git rejected every pass - often a malformed hunk header (e.g. a bare "@@"
+    # with no line numbers, which some models emit). Last resort: match each
+    # hunk's old block against the file by content and swap in the new block.
+    # Exact contiguous match only, so a correct fix applies but a wrong one can't
+    # be misapplied.
+    if _fuzzy_apply(patch, sandbox):
+        return True, "applied (content match)"
     return False, last.strip()
+
+
+def _find_block(lines: list[str], block: list[str]) -> int | None:
+    n = len(block)
+    if n == 0:
+        return None
+    for i in range(len(lines) - n + 1):
+        if lines[i : i + n] == block:
+            return i
+    return None
+
+
+def _fuzzy_apply(patch: str, sandbox: Path) -> bool:
+    # Apply a single-file diff by CONTENT, ignoring the hunk headers: for each
+    # hunk, find its old block (context + '-' lines) verbatim in the file and
+    # replace it with the new block (context + '+' lines). Bails on any ambiguity,
+    # so it recovers a correct fix with a bad header without risking a misapply.
+    targets = _targets(patch)
+    if not targets:
+        # Some models omit the ---/+++ lines; fall back to `diff --git a/X b/X`.
+        for line in patch.splitlines():
+            if line.startswith("diff --git "):
+                p = line.split()[-1]
+                targets = [p[2:] if p.startswith(("a/", "b/")) else p]
+                break
+    if len(targets) != 1:
+        return False
+    f = sandbox / targets[0]
+    if not f.is_file():
+        return False
+    try:
+        content = _norm_lf(f.read_text(encoding="utf-8")).split("\n")
+    except (UnicodeDecodeError, OSError):
+        return False
+
+    hunks: list[list[str]] = []
+    cur: list[str] | None = None
+    for ln in _norm_lf(patch).split("\n"):
+        if ln.startswith("@@"):
+            cur = []
+            hunks.append(cur)
+        elif ln.startswith(("diff ", "--- ", "+++ ", "index ")):
+            cur = None
+        elif cur is not None:
+            cur.append(ln)
+    if not hunks:
+        return False
+
+    for hunk in hunks:
+        old_block, new_block = [], []
+        for ln in hunk:
+            tag = ln[:1]
+            if ln.startswith("\\"):
+                continue  # "\ No newline at end of file" - metadata
+            if tag == "+":
+                new_block.append(ln[1:])
+            elif tag == "-":
+                old_block.append(ln[1:])
+            elif tag == " ":
+                old_block.append(ln[1:])
+                new_block.append(ln[1:])
+            elif ln == "":
+                old_block.append("")
+                new_block.append("")
+            else:
+                return False  # unexpected line -> bail rather than risk it
+        while old_block and new_block and old_block[-1] == "" and new_block[-1] == "":
+            old_block.pop()
+            new_block.pop()
+        idx = _find_block(content, old_block)
+        if idx is None:
+            return False
+        content = content[:idx] + new_block + content[idx + len(old_block) :]
+
+    try:
+        f.write_bytes(("\n".join(content)).encode("utf-8"))
+    except OSError:
+        return False
+    return True
 
 
 def verify_patch(

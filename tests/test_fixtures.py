@@ -98,6 +98,12 @@ def test_fixture_run_feeds_the_file_and_verifies(client, monkeypatch):
 
     monkeypatch.setattr(runs_mod, "dispatch", _fake_dispatch)
     monkeypatch.setattr(runs_mod, "Chairman", _FakeChairman)
+    recorded = []
+    monkeypatch.setattr(
+        runs_mod,
+        "record_outcome",
+        lambda model, category, passed, **k: recorded.append((model, category, passed)),
+    )
 
     resp = client.post(
         "/runs",
@@ -116,3 +122,6 @@ def test_fixture_run_feeds_the_file_and_verifies(client, monkeypatch):
     assert verification[0]["applies"] is True
     assert verification[0]["tests_passed"] is True
     assert out["verified_winner"] == "gpt"
+    # a fixture run records its verified outcome, so the router builds a real
+    # track record as the app is used (non-fixture runs still record nothing).
+    assert ("gpt", "bug", True) in recorded

@@ -43,3 +43,33 @@ def test_empty_patch_is_error():
     r = verify_patch("", REPO, TEST_CMD)
     assert not r.applies
     assert r.error
+
+
+def test_malformed_hunk_header_still_applies_by_content():
+    # A correct fix a model emitted with a bare "@@" header (no line numbers) and
+    # no ---/+++ lines: git apply rejects it, but the content-match fallback
+    # recovers it so a right answer isn't thrown away on formatting.
+    patch = (
+        "diff --git a/calc.py b/calc.py\n"
+        "@@\n"
+        " def add(a, b):\n"
+        "-    return a - b\n"
+        "+    return a + b\n"
+    )
+    r = verify_patch(patch, REPO, TEST_CMD)
+    assert r.applies
+    assert r.tests_passed
+
+
+def test_content_fallback_does_not_rescue_a_wrong_fix():
+    # A malformed-header patch whose content does not match the file must NOT be
+    # force-applied (no false positives from the fallback).
+    patch = (
+        "diff --git a/calc.py b/calc.py\n"
+        "@@\n"
+        " def add(a, b):\n"
+        "-    return a * b\n"  # this line is not in the file
+        "+    return a + b\n"
+    )
+    r = verify_patch(patch, REPO, TEST_CMD)
+    assert not r.applies
