@@ -1,11 +1,8 @@
-# Verification primitive for the trust layer.
+# Applies a candidate patch to a throwaway copy of a working tree and runs
+# the tests there. The result of that run is what trust_rank sorts on.
 #
-# Apply a candidate patch to a throwaway copy of a working tree and run its tests,
-# returning an evidence-bearing verdict. This is the trust signal that replaces the
-# blind LLM judge: the Chairman reborn ranks candidates by what ACTUALLY passes,
-# not by how a diff reads. Never raises for normal failures (a patch that doesn't
-# apply, failing tests, a timeout) - they are captured in the result, mirroring the
-# PatchResult / dispatch contract.
+# Normal failures (patch doesn't apply, tests fail, timeout) don't raise;
+# they come back in the VerifyResult, same convention as PatchResult.
 
 from __future__ import annotations
 
@@ -18,10 +15,11 @@ from pathlib import Path
 
 _SUMMARY_RE = re.compile(r"(\d+) (passed|failed|errors?)")
 
-# git-apply passes, exact first then increasingly lenient: tolerate wrong hunk line
-# numbers (--recount), whitespace (--ignore-whitespace), thinner context (-C1), and a
-# missing a/ b/ prefix (-p0). Recovers correct fixes with slightly-off diff metadata
-# without misapplying - the change's content context still has to match.
+# git-apply attempts, strict first then more lenient: wrong hunk line numbers
+# (--recount), whitespace (--ignore-whitespace), thinner context (-C1), missing
+# a/ b/ prefix (-p0). Models often produce diffs with slightly-off metadata;
+# these passes recover those without misapplying, since the actual context
+# lines still have to match.
 _APPLY_PASSES = [
     [],
     ["--recount"],
@@ -70,11 +68,11 @@ def _targets(patch: str) -> list[str]:
 
 
 def _apply(patch: str, sandbox: Path) -> tuple[bool, str]:
-    # git apply is a reliable, cross-platform, atomic patch applier (a failed apply
-    # leaves the tree untouched, so the -p1 fallback is safe). Normalise line endings
-    # on BOTH the patch and the target files to LF and send the patch as raw bytes -
-    # otherwise stdin text-mode translation (\n->\r\n on Windows) breaks context
-    # matching against LF source files.
+    # git apply is atomic (a failed apply leaves the tree untouched), which is
+    # what makes retrying with looser flags safe. Line endings on the patch and
+    # the target files both get normalised to LF, and the patch goes in as raw
+    # bytes; on Windows, text-mode stdin turns \n into \r\n and context
+    # matching breaks against LF files. That one cost me an afternoon.
     patch = _norm_lf(patch)
     for rel in _targets(patch):
         f = sandbox / rel

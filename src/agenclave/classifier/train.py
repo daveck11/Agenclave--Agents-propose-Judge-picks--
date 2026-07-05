@@ -3,7 +3,7 @@
 # For each task we train the cross product
 # `{tfidf, minilm} x {logreg, randomforest}` (4 configs) with fixed seeds,
 # select the best config by macro-F1 on the validation set, and persist the best
-# **TF-IDF** config per task as the torch-free production model.
+# TF-IDF config per task as the torch-free production model.
 #
 # Why the served model is always TF-IDF (not whichever wins macro-F1):
 # - the FastAPI service must import without torch / sentence-transformers, and
@@ -15,7 +15,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import f1_score

@@ -1,9 +1,6 @@
-# Tests for the Stage 1 FastAPI triage service (API contract).
-#
-# Fast and torch-free: only the lightweight `predict` import path is exercised.
-# The happy path adapts to model state, if the production models exist it asserts
-# a real 200 prediction; if they are absent it asserts a clean 503. No mocked or
-# fabricated predictions.
+# API contract tests for the triage service. Torch-free. The happy path
+# adapts to model state: with the trained models present it asserts a real
+# 200 prediction, without them a clean 503.
 
 from __future__ import annotations
 

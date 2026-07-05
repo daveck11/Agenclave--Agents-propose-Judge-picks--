@@ -1,23 +1,15 @@
-# BlackBox AI provider adapter (OpenAI-compatible).
+# BlackBox provider adapter. BlackBox's inference API is OpenAI-compatible,
+# so this is the OpenAI SDK pointed at their base URL with a bb_ key. With
+# AGENCLAVE_PROVIDER=blackbox every agent in the panel goes through BlackBox.
 #
-# BlackBox exposes an OpenAI-compatible inference API - "all models, one endpoint"
-# (Claude, GPT, Gemini, Grok, DeepSeek, ...). So this adapter reuses the OpenAI
-# Async SDK pointed at BlackBox's base URL with a `bb_` key, exactly mirroring the
-# OpenAI branch of DirectAgent. Every agent in the best-of-N panel is then
-# dispatched THROUGH BlackBox, and the Chairman judges between them.
-#
-# Activate it with env (no code change needed):
+# Env to activate:
 #     AGENCLAVE_PROVIDER=blackbox
 #     AGENCLAVE_BLACKBOX_API_KEY=bb_...
-#     AGENCLAVE_BLACKBOX_API_BASE=<from BlackBox API docs; OpenAI-compatible root>
-#     AGENCLAVE_AGENT_MODELS=<comma-separated BlackBox model ids>
+#     AGENCLAVE_BLACKBOX_API_BASE=<OpenAI-compatible root from their docs>
+#     AGENCLAVE_AGENT_MODELS=<comma-separated model ids>
 #
-# `propose_patch` never raises for normal failures (network/API errors, empty
-# output): they are captured in `PatchResult.error` so dispatch keeps the other
-# candidates - same contract as DirectAgent.
-#
-# NOTE: confirm the exact base URL + model ids against BlackBox's current API docs.
-# They are config values precisely so wiring a real key needs no code change.
+# Same error contract as DirectAgent: propose_patch puts failures in
+# PatchResult.error instead of raising.
 
 from __future__ import annotations
 
@@ -27,12 +19,9 @@ from .base import AGENT_SYSTEM_PROMPT, build_task_prompt, extract_diff
 
 
 class BlackBoxAgent(Agent):
-    # A coding agent backed by BlackBox's OpenAI-compatible API.
-    #
-    #     api_key / api_base default to settings (the env-configured values); they
-    #     are constructor args mainly so tests can inject a mock endpoint. The
-    #     async client is built lazily on first use and cached on the instance, so
-    #     constructing an agent costs nothing and needs no key.
+    # api_key / api_base default to settings; they're constructor args so
+    # tests can point at a mock endpoint. The client is built lazily, so
+    # constructing an agent needs no key.
 
     def __init__(
         self,

@@ -1,4 +1,4 @@
-# Bucket 1: trust_rank orders candidates by verified trustworthiness, not by looks.
+# trust_rank should order candidates by what verification showed.
 
 from __future__ import annotations
 

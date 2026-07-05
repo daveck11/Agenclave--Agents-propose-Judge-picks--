@@ -43,11 +43,8 @@ def _compose_text(title: str, body: str) -> str:
 
 @functools.lru_cache(maxsize=1)
 def _load_models() -> dict:
-    # Load + cache the served pipeline(s) and metadata (once per process).
-    #
-    #     The TYPE model is required. The SEVERITY model is optional: it is loaded only
-    #     if present (the shipped deliverable is type-only), otherwise `severity` is
-    #     `None` and severity fields are reported as `None` downstream.
+    # Load and cache the served pipelines once per process. The type model
+    # is required; the severity model is optional and usually absent.
     if not TYPE_MODEL_PATH.exists():
         raise ModelsNotTrained(
             f"missing production model: {TYPE_MODEL_PATH} "
@@ -75,11 +72,9 @@ def _predict_one(pipeline, text: str) -> tuple[str, float]:
 
 
 def _top_tokens(pipeline, predicted_label: str, k: int = 8) -> list[str]:
-    # Top-k TF-IDF tokens driving `predicted_label`.
-    #
-    #     For a linear model, rank by the class's coefficient vector; for a tree
-    #     ensemble, fall back to global `feature_importances_`. Returns vocabulary
-    #     terms (best-effort; empty list if the estimator exposes neither).
+    # Top-k tokens driving the predicted label. Linear model: rank by the
+    # class's coefficients. Tree ensemble: fall back to global feature
+    # importances. Empty list if the estimator has neither.
     vectorizer = pipeline.named_steps.get("features")
     clf = pipeline.named_steps.get("clf")
     if vectorizer is None or clf is None:
@@ -110,12 +105,12 @@ def _top_tokens(pipeline, predicted_label: str, k: int = 8) -> list[str]:
 
 
 def predict_triage(title: str, body: str = "", top_k: int = 8) -> dict:
-    # Classify an issue into type (and severity, if that head is available).
-    #
-    #     Returns a dict with keys: `label`, `label_confidence`, `severity`,
-    #     `severity_confidence`, `top_tokens`. `severity` and
-    #     `severity_confidence` are `None` when the (optional) severity head is not
-    #     present, the shipped deliverable is type-only.
+    """Classify an issue.
+
+    Returns label, label_confidence, severity, severity_confidence and
+    top_tokens. The severity fields are None unless the optional severity
+    model exists.
+    """
     models = _load_models()
     text = _compose_text(title, body)
 

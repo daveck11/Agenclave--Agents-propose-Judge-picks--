@@ -1,5 +1,5 @@
-# Bucket 1: verify_patch detects each trust tier on the controlled calc_bug fixture.
-# No network. Each candidate is applied to a sandbox copy and its tests are run.
+# verify_patch should detect each trust tier on the calc_bug fixture.
+# No network; each candidate is applied to a sandbox copy and tested.
 
 from __future__ import annotations
 

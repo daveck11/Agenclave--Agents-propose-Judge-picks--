@@ -86,8 +86,11 @@ class Chairman:
     async def judge(
         self, task: Task, candidates: list[PatchResult]
     ) -> ChairmanDecision:
-        # Rank candidates and select the best. Strict-JSON, never raises for
-        #         an empty field; coerces the model's answer to valid agent names.
+        """Rank the candidates and pick the best one.
+
+        The model's answer gets coerced to valid agent names, so a
+        hallucinated name falls back to the top of the ranking.
+        """
         usable = [c for c in candidates if c.ok]
 
         # Degenerate cases: 0 or 1 usable candidate need no LLM call.

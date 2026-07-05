@@ -1,15 +1,11 @@
-# Per-model reliability - learned from real in-loop verification outcomes.
+# JSON store of how often each model's patch has passed verification, keyed
+# by (model, category). trust_rank uses it as a tiebreak and the router
+# samples from it.
 #
-# This is the memory behind "which model do I trust for this task": a JSON store
-# of how often each model's patch has actually passed verification, keyed by
-# (model, category). `trust_rank` uses it as a TIEBREAK - hard verification
-# evidence on the current task always dominates; reliability only orders equals.
-#
-# CRITICAL - no eval leakage. This store is fed ONLY by the trust mechanism's own
-# in-loop verification (`verify_patch` on the project's own tests / a generated
-# repro). It must NEVER be seeded from a hidden held-out grade or any out-of-loop
-# final scorer. Mixing that in would both import its conclusion and contaminate the
-# trust loop with the very signal used to judge the system.
+# One rule matters here: the only thing allowed to write this store is our
+# own in-loop verification (verify_patch). If a held-out grade like the
+# SWE-bench harness ever fed it, the routing would be learning from the same
+# signal we use to evaluate the system, and the numbers would be worthless.
 
 from __future__ import annotations
 
@@ -22,15 +18,13 @@ STORE_NAME = "model_reliability.json"
 
 
 def _store_path(path: Path | str | None) -> Path:
-    # Default to the shared results store; `path` overrides for test isolation.
+    # `path` override exists so tests don't write into the real store
     return Path(path) if path is not None else RESULTS_DIR / STORE_NAME
 
 
 def _normalize_model(model: str) -> str:
-    # Reliability should be consistent regardless of how a model was reached, so
-    # strip the provider tag dispatch prepends (BlackBox agents are named
-    # "blackbox:<model>", see providers/blackbox.py). Everything else passes
-    # through unchanged.
+    # dispatch names BlackBox agents "blackbox:<model>"; strip that so the
+    # same model reached two ways shares one entry
     model = model or ""
     if model.startswith("blackbox:"):
         model = model[len("blackbox:"):]
@@ -38,14 +32,12 @@ def _normalize_model(model: str) -> str:
 
 
 def _key(model: str, category: str | None) -> str:
-    # "<model>|<category>" - category is the Stage 1 triage label (bug/... ), used
-    # verbatim; None/"" becomes an empty segment (an honest "uncategorised").
+    # "<model>|<category>"; category is the triage label, empty if unknown
     return f"{_normalize_model(model)}|{category or ''}"
 
 
 def _load(path: Path | str | None = None) -> dict:
-    # Tolerate a missing or corrupt store by starting fresh - reliability is an
-    # accumulating best-effort signal, never a source of truth to fail hard on.
+    # missing or corrupt store just means we start from zero
     p = _store_path(path)
     if not p.exists():
         return {}
@@ -59,8 +51,8 @@ def _load(path: Path | str | None = None) -> dict:
 def record_outcome(
     model: str, category: str | None, passed: bool, *, path: Path | str | None = None
 ) -> None:
-    # Fold one in-loop verification result into the store. `passed` MUST come from
-    # verify_patch (VerifyResult.tests_passed), never from an out-of-loop grade.
+    # `passed` has to come from verify_patch, never from an external grade
+    # (see the note at the top of this file)
     p = _store_path(path)
     data = _load(path)
     entry = data.get(_key(model, category), {"passed": 0, "total": 0})
@@ -75,10 +67,9 @@ def record_outcome(
 def reliability(
     model: str, category: str | None, *, path: Path | str | None = None
 ) -> tuple[float, int, int]:
-    # Return (estimate, passed, total). The estimate is a Beta(1,1)-smoothed pass
-    # rate `(passed + 1) / (total + 2)`: honest 0.5 with no data, converging on the
-    # true rate as evidence accumulates. This is the exact count pair a later
-    # Thompson-sampling router will draw from - Beta(passed+1, total-passed+1).
+    # Returns (estimate, passed, total). Estimate is Laplace-smoothed,
+    # (passed+1)/(total+2), so a model with no data sits at 0.5 instead of
+    # 0 or 1. The router draws from Beta with these same counts.
     entry = _load(path).get(_key(model, category), {})
     passed = int(entry.get("passed", 0))
     total = int(entry.get("total", 0))
