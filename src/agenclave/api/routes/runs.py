@@ -178,33 +178,47 @@ async def run_pipeline(
 
         # A fixture ships real tests, so verify here instead of only judging by
         # reading: apply each candidate in a sandbox, run the tests, and rank by
-        # what actually passes. verify_patch is blocking (subprocess), so keep it
-        # off the event loop. This deliberately does NOT write reliability - that
-        # stays scripts/verified_run.py's job (see harness/reliability.py).
+        # what actually passes. verify_patch is blocking (subprocess), so run the
+        # candidates concurrently off the event loop with a tight timeout.
+        # Verification must NEVER fail the run - any error (git/pytest missing, a
+        # pathological patch) degrades to the judge-only result. It also does not
+        # write reliability; that stays verified_run.py's job (see reliability.py).
         if fixture is not None:
-            vrs = {}
-            for c in candidates:
-                if c.ok:
-                    vrs[c.agent_name] = await asyncio.to_thread(
-                        verify_patch, c.patch, fixture.repo, fixture.test_cmd
-                    )
-            ranking = trust_rank(candidates, vrs, category=label)
             out["fixture"] = {"id": fixture.id, "module": fixture.module}
-            out["verification"] = [
-                {
-                    "agent": v.agent_name,
-                    "tier": v.tier,
-                    "reason": v.reason,
-                    "applies": bool(v.agent_name in vrs and vrs[v.agent_name].applies),
-                    "tests_passed": bool(
-                        v.agent_name in vrs and vrs[v.agent_name].tests_passed
-                    ),
-                    "passed": vrs[v.agent_name].passed if v.agent_name in vrs else 0,
-                    "total": vrs[v.agent_name].total if v.agent_name in vrs else 0,
-                }
-                for v in ranking
-            ]
-            out["verified_winner"] = ranking[0].agent_name if ranking else None
+            try:
+
+                async def _verify(cand):
+                    vr = await asyncio.to_thread(
+                        verify_patch, cand.patch, fixture.repo, fixture.test_cmd,
+                        timeout=60,
+                    )
+                    return cand.agent_name, vr
+
+                results = await asyncio.gather(
+                    *(_verify(c) for c in candidates if c.ok)
+                )
+                vrs = dict(results)
+                ranking = trust_rank(candidates, vrs, category=label)
+                out["verification"] = [
+                    {
+                        "agent": v.agent_name,
+                        "tier": v.tier,
+                        "reason": v.reason,
+                        "applies": bool(v.agent_name in vrs and vrs[v.agent_name].applies),
+                        "tests_passed": bool(
+                            v.agent_name in vrs and vrs[v.agent_name].tests_passed
+                        ),
+                        "passed": vrs[v.agent_name].passed if v.agent_name in vrs else 0,
+                        "total": vrs[v.agent_name].total if v.agent_name in vrs else 0,
+                    }
+                    for v in ranking
+                ]
+                out["verified_winner"] = ranking[0].agent_name if ranking else None
+            except Exception:  # noqa: BLE001 - never 500 the run over verification
+                logger.exception("fixture verification failed for %s", fixture.id)
+                out["verification_error"] = (
+                    "verification could not run for this task (see server logs)"
+                )
 
     # runs are never auto-saved; the user keeps one via POST /runs/save
     return out
