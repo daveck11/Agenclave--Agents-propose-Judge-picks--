@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import functools
 import json
+import re
 from typing import Any
 
 from ..interfaces import Agent, PatchResult, Task
@@ -112,6 +113,30 @@ async def complete_text(
     )
 
 
+def _parse_json_object(text: str) -> dict[str, Any]:
+    # Best-effort JSON extraction for endpoints without a JSON mode: the model is
+    # asked for JSON in the prompt but may still wrap it in prose or a ```json
+    # fence. Strip a fence, then fall back to the outermost {...} block. Returns
+    # {} if nothing parses (the Chairman handles an empty decision gracefully).
+    text = (text or "").strip()
+    if not text:
+        return {}
+    fence = re.search(r"```(?:json)?\s*\n?(.*?)```", text, re.DOTALL)
+    if fence:
+        text = fence.group(1).strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+    start, end = text.find("{"), text.rfind("}")
+    if start != -1 and end > start:
+        try:
+            return json.loads(text[start : end + 1])
+        except json.JSONDecodeError:
+            return {}
+    return {}
+
+
 async def complete_json(
     model: str,
     system: str,
@@ -131,19 +156,20 @@ async def complete_json(
     if provider == "blackbox":
         client = _blackbox_client()
         user_with_schema = (
-            f"{user}\n\nRespond with a JSON object matching this schema:\n"
-            f"{json.dumps(schema)}"
+            f"{user}\n\nRespond with ONLY a JSON object matching this schema - no "
+            f"prose, no markdown fences:\n{json.dumps(schema)}"
         )
+        # BlackBox's open-source endpoint rejects response_format=json_object, so
+        # ask for JSON in the prompt and parse it tolerantly from the text.
         resp = await client.chat.completions.create(
             model=model,
             max_tokens=max_tokens,
-            response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": system},
                 {"role": "user", "content": user_with_schema},
             ],
         )
-        return json.loads(resp.choices[0].message.content or "{}")
+        return _parse_json_object(resp.choices[0].message.content or "")
 
     if is_anthropic_model(model):
         client = _anthropic_client()
