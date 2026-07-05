@@ -222,6 +222,14 @@ async def run_pipeline(
                     for v in ranking
                 ]
                 out["verified_winner"] = ranking[0].agent_name if ranking else None
+                # Verification, not the judge, picks the final patch for a fixture.
+                if ranking:
+                    wname = ranking[0].agent_name
+                    wpatch = next(
+                        (c.patch for c in candidates if c.agent_name == wname), None
+                    )
+                    if wpatch:
+                        out["selected_patch"] = wpatch
             except Exception:  # noqa: BLE001 - never 500 the run over verification
                 logger.exception("fixture verification failed for %s", fixture.id)
                 out["verification_error"] = (

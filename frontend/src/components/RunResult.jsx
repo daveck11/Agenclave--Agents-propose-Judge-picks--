@@ -90,12 +90,34 @@ function Routing({ routing }) {
 // applies each patch and runs the tests. This shows who passed - and, when the
 // Chairman's read-the-patch pick differs from what the tests prove, calls it out.
 function Verification({ verification, verifiedWinner, chairmanWinner, fixture }) {
-  const winner = (verification || []).find((v) => v.agent === verifiedWinner)
-  const winnerPassed = winner && winner.tier === 'trusted'
-  // Only surface the judge-vs-tests contrast when the tests actually crown a
-  // different, passing winner - otherwise it would be misleading.
-  const disagree =
-    winnerPassed && chairmanWinner && verifiedWinner !== chairmanWinner
+  const vlist = verification || []
+  const tierOf = (agent) => (vlist.find((v) => v.agent === agent) || {}).tier
+  const verifiedPassed = tierOf(verifiedWinner) === 'trusted'
+  const judgePassed = tierOf(chairmanWinner) === 'trusted'
+  const differ = verifiedWinner && chairmanWinner && verifiedWinner !== chairmanWinner
+
+  let callout = null
+  if (differ && verifiedPassed && !judgePassed) {
+    // Hero case: the judge's pick fails the tests; verification catches it.
+    callout = (
+      <>
+        The Chairman picked <code>{modelName(chairmanWinner)}</code> by reading the
+        patches - but its patch <strong>fails the tests</strong>. Verification selected{' '}
+        <code>{modelName(verifiedWinner)}</code>, which passes. Verification, not the
+        judge, decides.
+      </>
+    )
+  } else if (differ && verifiedPassed && judgePassed) {
+    // Tie-break case: the judge's pick also passed; trust breaks the tie.
+    callout = (
+      <>
+        The Chairman's pick and the verified winner both pass the tests - so
+        verification breaks the tie by track record and takes the more-trusted,{' '}
+        <code>{modelName(verifiedWinner)}</code> (the Chairman, reading only,
+        preferred <code>{modelName(chairmanWinner)}</code>).
+      </>
+    )
+  }
 
   return (
     <div className="verify">
@@ -105,13 +127,7 @@ function Verification({ verification, verifiedWinner, chairmanWinner, fixture })
       <p className="verify-note">
         Each candidate patch was applied in a sandbox and its tests were run.
       </p>
-      {disagree && (
-        <div className="verify-callout">
-          The Chairman picked <code>{modelName(chairmanWinner)}</code> by reading the
-          patches - but running the tests proves <code>{modelName(verifiedWinner)}</code>{' '}
-          is the one that actually works. Verification, not the judge, decides.
-        </div>
-      )}
+      {callout && <div className="verify-callout">{callout}</div>}
     </div>
   )
 }
@@ -123,10 +139,16 @@ export default function RunResult({ result }) {
   const gatePassed = r?.gate?.passed
   const decision = r?.decision || {}
   const ranking = decision.ranking || []
-  const winner = decision.selected_agent
+  const chairmanPick = decision.selected_agent
+  // A fixture run has real verification, so VERIFICATION (not the judge) decides
+  // the final winner; a plain run has no tests, so the Chairman's pick stands.
+  const isFixture = Boolean(r.verification)
+  const verifyOrder = (r.verification || []).map((v) => v.agent)
+  const winner = isFixture ? r.verified_winner : chairmanPick
+  const order = isFixture && verifyOrder.length ? verifyOrder : ranking
   const candidates = [...(r.candidates || [])].sort((a, b) => {
-    const ia = ranking.indexOf(a.agent)
-    const ib = ranking.indexOf(b.agent)
+    const ia = order.indexOf(a.agent)
+    const ib = order.indexOf(b.agent)
     return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib)
   })
 
@@ -185,7 +207,9 @@ export default function RunResult({ result }) {
             <span className="flow-arrow">→</span>
             <span className="flow-node">{candidates.length} agents</span>
             <span className="flow-arrow">→</span>
-            <span className="flow-node accent">chairman: {modelName(winner)}</span>
+            <span className="flow-node accent">
+              {isFixture ? 'verified' : 'chairman'}: {modelName(winner)}
+            </span>
             {r.cost && (
               <span className="spent-pill">
                 spent ${(r.cost.spent_usd ?? 0).toFixed(4)}
@@ -197,7 +221,7 @@ export default function RunResult({ result }) {
             <Verification
               verification={r.verification}
               verifiedWinner={r.verified_winner}
-              chairmanWinner={winner}
+              chairmanWinner={chairmanPick}
               fixture={r.fixture}
             />
           )}
@@ -207,7 +231,7 @@ export default function RunResult({ result }) {
           </div>
           <div className="agent-grid">
             {candidates.map((c) => {
-              const rank = ranking.indexOf(c.agent)
+              const rank = order.indexOf(c.agent)
               const isWinner = c.agent === winner
               return (
                 <div
@@ -218,7 +242,9 @@ export default function RunResult({ result }) {
                     <span className="agent-model">{modelName(c.agent)}</span>
                     <span className="agent-tags">
                       {rank >= 0 && <span className="rank-pill">#{rank + 1}</span>}
-                      {isWinner && <span className="badge-win">selected</span>}
+                      {isWinner && (
+                        <span className="badge-win">{isFixture ? 'verified' : 'selected'}</span>
+                      )}
                       {!c.ok && <span className="badge-err">failed</span>}
                     </span>
                   </div>
@@ -230,11 +256,13 @@ export default function RunResult({ result }) {
           </div>
 
           <div className="stage-label">
-            Chairman decision ({modelName(r.config?.chairman_model)})
+            {isFixture ? 'Chairman read (patch-only)' : 'Chairman decision'} (
+            {modelName(r.config?.chairman_model)})
           </div>
           <div className="chairman-pick">
             <div className="pick-head">
-              Selected <code>{modelName(winner)}</code>
+              {isFixture ? 'Preferred by reading' : 'Selected'}{' '}
+              <code>{modelName(chairmanPick)}</code>
               {decision.synthesized && (
                 <span className="synth-pill">synthesised</span>
               )}
@@ -245,7 +273,9 @@ export default function RunResult({ result }) {
                 {ranking.map((m, i) => (
                   <span key={m}>
                     {i > 0 && <span className="rank-sep"> ▸ </span>}
-                    <span className={m === winner ? 'rank-win' : ''}>{modelName(m)}</span>
+                    <span className={m === chairmanPick ? 'rank-win' : ''}>
+                      {modelName(m)}
+                    </span>
                   </span>
                 ))}
               </div>
