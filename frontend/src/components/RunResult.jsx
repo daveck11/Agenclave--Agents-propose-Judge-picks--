@@ -89,36 +89,9 @@ function Routing({ routing }) {
 // Verification panel: for a practice-bug (fixture) run the backend actually
 // applies each patch and runs the tests. This shows who passed - and, when the
 // Chairman's read-the-patch pick differs from what the tests prove, calls it out.
-function Verification({ verification, verifiedWinner, chairmanWinner, fixture }) {
-  const vlist = verification || []
-  const tierOf = (agent) => (vlist.find((v) => v.agent === agent) || {}).tier
-  const verifiedPassed = tierOf(verifiedWinner) === 'trusted'
-  const judgePassed = tierOf(chairmanWinner) === 'trusted'
-  const differ = verifiedWinner && chairmanWinner && verifiedWinner !== chairmanWinner
-
-  let callout = null
-  if (differ && verifiedPassed && !judgePassed) {
-    // Hero case: the judge's pick fails the tests; verification catches it.
-    callout = (
-      <>
-        The Chairman picked <code>{modelName(chairmanWinner)}</code> by reading the
-        patches - but its patch <strong>fails the tests</strong>. Verification selected{' '}
-        <code>{modelName(verifiedWinner)}</code>, which passes. Verification, not the
-        judge, decides.
-      </>
-    )
-  } else if (differ && verifiedPassed && judgePassed) {
-    // Tie-break case: the judge's pick also passed; trust breaks the tie.
-    callout = (
-      <>
-        The Chairman's pick and the verified winner both pass the tests - so
-        verification breaks the tie by track record and takes the more-trusted,{' '}
-        <code>{modelName(verifiedWinner)}</code> (the Chairman, reading only,
-        preferred <code>{modelName(chairmanWinner)}</code>).
-      </>
-    )
-  }
-
+// Verification panel: just notes that the tests were actually run. The winner
+// and the reasoning are announced by the Chairman verdict below.
+function Verification({ fixture }) {
   return (
     <div className="verify">
       <div className="stage-label">
@@ -127,7 +100,6 @@ function Verification({ verification, verifiedWinner, chairmanWinner, fixture })
       <p className="verify-note">
         Each candidate patch was applied in a sandbox and its tests were run.
       </p>
-      {callout && <div className="verify-callout">{callout}</div>}
     </div>
   )
 }
@@ -151,6 +123,20 @@ export default function RunResult({ result }) {
     const ib = order.indexOf(b.agent)
     return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib)
   })
+
+  // For a fixture run the Chairman verdict announces the verified winner and why
+  // it won relative to the judge's read.
+  const tierOf = (a) => ((r.verification || []).find((v) => v.agent === a) || {}).tier
+  let verdictLine = null
+  if (isFixture && winner) {
+    if (chairmanPick === winner) {
+      verdictLine = 'It passes the tests, and the Chairman’s read agrees.'
+    } else if (tierOf(chairmanPick) !== 'trusted') {
+      verdictLine = `The Chairman read-preferred ${modelName(chairmanPick)}, but that patch fails the tests - verification took ${modelName(winner)}, which passes.`
+    } else {
+      verdictLine = `The Chairman read-preferred ${modelName(chairmanPick)}, but with the tests run, ${modelName(winner)} wins on verified track record (both pass).`
+    }
+  }
 
   return (
     <section className="result">
@@ -217,14 +203,7 @@ export default function RunResult({ result }) {
             )}
           </div>
 
-          {r.verification && (
-            <Verification
-              verification={r.verification}
-              verifiedWinner={r.verified_winner}
-              chairmanWinner={chairmanPick}
-              fixture={r.fixture}
-            />
-          )}
+          {r.verification && <Verification fixture={r.fixture} />}
 
           <div className="stage-label">
             Stage 2 candidates ({candidates.length} agents, parallel)
@@ -256,20 +235,25 @@ export default function RunResult({ result }) {
           </div>
 
           <div className="stage-label">
-            {isFixture ? 'Chairman read (patch-only)' : 'Chairman decision'} (
-            {modelName(r.config?.chairman_model)})
+            Chairman verdict ({modelName(r.config?.chairman_model)})
           </div>
           <div className="chairman-pick">
             <div className="pick-head">
-              {isFixture ? 'Preferred by reading' : 'Selected'}{' '}
-              <code>{modelName(chairmanPick)}</code>
+              {isFixture ? 'Overall winner' : 'Selected'}{' '}
+              <code>{modelName(isFixture ? winner : chairmanPick)}</code>
+              {isFixture && <span className="badge-win">verified</span>}
               {decision.synthesized && (
                 <span className="synth-pill">synthesised</span>
               )}
             </div>
+            {isFixture && verdictLine && (
+              <div className="verify-callout" style={{ marginTop: 8 }}>
+                {verdictLine}
+              </div>
+            )}
             {ranking.length > 0 && (
               <div className="rank-row">
-                ranking:{' '}
+                {isFixture ? 'Chairman read: ' : 'ranking: '}
                 {ranking.map((m, i) => (
                   <span key={m}>
                     {i > 0 && <span className="rank-sep"> ▸ </span>}
