@@ -130,11 +130,11 @@ export default function RunResult({ result }) {
   let verdictLine = null
   if (isFixture && winner) {
     if (chairmanPick === winner) {
-      verdictLine = 'It passes the tests, and the Chairman’s read agrees.'
+      verdictLine = `${modelName(winner)} passes the tests and has the strongest verified track record.`
     } else if (tierOf(chairmanPick) !== 'trusted') {
-      verdictLine = `The Chairman read-preferred ${modelName(chairmanPick)}, but that patch fails the tests - verification took ${modelName(winner)}, which passes.`
+      verdictLine = `The Chairman’s pick fails the tests, so verification takes ${modelName(winner)}, which passes.`
     } else {
-      verdictLine = `The Chairman read-preferred ${modelName(chairmanPick)}, but with the tests run, ${modelName(winner)} wins on verified track record (both pass).`
+      verdictLine = `Both top patches pass the tests, so verification takes ${modelName(winner)} as the more-trusted.`
     }
   }
 
@@ -238,6 +238,11 @@ export default function RunResult({ result }) {
             Chairman verdict ({modelName(r.config?.chairman_model)})
           </div>
           <div className="chairman-pick">
+            {isFixture && chairmanPick && (
+              <div className="pick-sub">
+                Chairman picked <code>{modelName(chairmanPick)}</code> by reading
+              </div>
+            )}
             <div className="pick-head">
               {isFixture ? 'Overall winner' : 'Selected'}{' '}
               <code>{modelName(isFixture ? winner : chairmanPick)}</code>
@@ -251,9 +256,9 @@ export default function RunResult({ result }) {
                 {verdictLine}
               </div>
             )}
-            {ranking.length > 0 && (
+            {!isFixture && ranking.length > 0 && (
               <div className="rank-row">
-                {isFixture ? 'Chairman read: ' : 'ranking: '}
+                ranking:{' '}
                 {ranking.map((m, i) => (
                   <span key={m}>
                     {i > 0 && <span className="rank-sep"> ▸ </span>}
@@ -264,7 +269,7 @@ export default function RunResult({ result }) {
                 ))}
               </div>
             )}
-            <p className="pick-rationale">{decision.rationale}</p>
+            {!isFixture && <p className="pick-rationale">{decision.rationale}</p>}
           </div>
         </>
       )}
