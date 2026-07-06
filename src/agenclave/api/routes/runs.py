@@ -148,17 +148,88 @@ async def run_pipeline(
             agents = build_agents(settings.provider, run_models)
             chairman = Chairman(settings.chairman_model)
             candidates = await dispatch(task, agents)
-            decision = await chairman.judge(task, candidates)
         except Exception as exc:  # noqa: BLE001 - surface a safe message, log detail.
-            logger.exception("live pipeline run failed")
+            logger.exception("live dispatch failed")
             raise HTTPException(
                 status_code=502,
                 detail=f"provider call failed: {type(exc).__name__}. Check API keys in .env.",
             ) from exc
 
-        selected_patch = decision.synthesized_patch or next(
-            (c.patch for c in candidates if c.agent_name == decision.selected_agent), ""
+        # A fixture ships real tests, so verify BEFORE the Chairman speaks: apply
+        # each candidate in a sandbox, run the tests, and rank by what passes.
+        # verify_patch is blocking (subprocess), so run the candidates concurrently
+        # off the event loop with a tight timeout. Verification must NEVER fail the
+        # run - any error degrades to a judge-only result.
+        vrs: dict = {}
+        winner = None
+        if fixture is not None:
+            out["fixture"] = {"id": fixture.id, "module": fixture.module}
+            try:
+
+                async def _verify(cand):
+                    vr = await asyncio.to_thread(
+                        verify_patch, cand.patch, fixture.repo, fixture.test_cmd,
+                        timeout=60,
+                    )
+                    return cand.agent_name, vr
+
+                results = await asyncio.gather(
+                    *(_verify(c) for c in candidates if c.ok)
+                )
+                vrs = dict(results)
+                # In-loop verification: record each outcome so the router builds a
+                # genuine track record as the app is used (the no-leakage rule only
+                # bars a held-out grade, which this is not; the non-fixture web path
+                # records nothing because it has no verification).
+                for name, vr in vrs.items():
+                    record_outcome(name, label, vr.tests_passed)
+                ranking = trust_rank(candidates, vrs, category=label)
+                winner = ranking[0].agent_name if ranking else None
+                out["verification"] = [
+                    {
+                        "agent": v.agent_name,
+                        "tier": v.tier,
+                        "reason": v.reason,
+                        "applies": bool(v.agent_name in vrs and vrs[v.agent_name].applies),
+                        "tests_passed": bool(
+                            v.agent_name in vrs and vrs[v.agent_name].tests_passed
+                        ),
+                        "passed": vrs[v.agent_name].passed if v.agent_name in vrs else 0,
+                        "total": vrs[v.agent_name].total if v.agent_name in vrs else 0,
+                    }
+                    for v in ranking
+                ]
+                out["verified_winner"] = winner
+            except Exception:  # noqa: BLE001 - never 500 the run over verification
+                logger.exception("fixture verification failed for %s", fixture.id)
+                out["verification_error"] = (
+                    "verification could not run for this task (see server logs)"
+                )
+
+        # The Chairman: for a verified fixture run, EXPLAIN the winner in its own
+        # words (comparing the candidates' approaches, using the test results);
+        # otherwise judge the patches by reading.
+        try:
+            if fixture is not None and winner is not None:
+                decision = await chairman.explain(task, candidates, vrs, winner)
+            else:
+                decision = await chairman.judge(task, candidates)
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("chairman call failed")
+            raise HTTPException(
+                status_code=502,
+                detail=f"judge call failed: {type(exc).__name__}. Check API keys in .env.",
+            ) from exc
+
+        # The final patch is the verified winner's for a fixture; the judge's pick
+        # otherwise.
+        final_agent = (
+            winner if (fixture is not None and winner is not None)
+            else decision.selected_agent
         )
+        selected_patch = next(
+            (c.patch for c in candidates if c.agent_name == final_agent), ""
+        ) or (decision.synthesized_patch or "")
         out.update(
             {
                 "ran_live": True,
@@ -176,65 +247,6 @@ async def run_pipeline(
             }
         )
         out["cost"]["spent_usd"] = round(projection, 4)
-
-        # A fixture ships real tests, so verify here instead of only judging by
-        # reading: apply each candidate in a sandbox, run the tests, and rank by
-        # what actually passes. verify_patch is blocking (subprocess), so run the
-        # candidates concurrently off the event loop with a tight timeout.
-        # Verification must NEVER fail the run - any error (git/pytest missing, a
-        # pathological patch) degrades to the judge-only result. It also does not
-        # write reliability; that stays verified_run.py's job (see reliability.py).
-        if fixture is not None:
-            out["fixture"] = {"id": fixture.id, "module": fixture.module}
-            try:
-
-                async def _verify(cand):
-                    vr = await asyncio.to_thread(
-                        verify_patch, cand.patch, fixture.repo, fixture.test_cmd,
-                        timeout=60,
-                    )
-                    return cand.agent_name, vr
-
-                results = await asyncio.gather(
-                    *(_verify(c) for c in candidates if c.ok)
-                )
-                vrs = dict(results)
-                # A fixture ships real tests, so this IS in-loop verification -
-                # record each outcome so the router builds a genuine track record
-                # as the app is used. The no-leakage rule only bars a held-out
-                # grade (which this is not); the non-fixture web path still records
-                # nothing because it has no verification.
-                for name, vr in vrs.items():
-                    record_outcome(name, label, vr.tests_passed)
-                ranking = trust_rank(candidates, vrs, category=label)
-                out["verification"] = [
-                    {
-                        "agent": v.agent_name,
-                        "tier": v.tier,
-                        "reason": v.reason,
-                        "applies": bool(v.agent_name in vrs and vrs[v.agent_name].applies),
-                        "tests_passed": bool(
-                            v.agent_name in vrs and vrs[v.agent_name].tests_passed
-                        ),
-                        "passed": vrs[v.agent_name].passed if v.agent_name in vrs else 0,
-                        "total": vrs[v.agent_name].total if v.agent_name in vrs else 0,
-                    }
-                    for v in ranking
-                ]
-                out["verified_winner"] = ranking[0].agent_name if ranking else None
-                # Verification, not the judge, picks the final patch for a fixture.
-                if ranking:
-                    wname = ranking[0].agent_name
-                    wpatch = next(
-                        (c.patch for c in candidates if c.agent_name == wname), None
-                    )
-                    if wpatch:
-                        out["selected_patch"] = wpatch
-            except Exception:  # noqa: BLE001 - never 500 the run over verification
-                logger.exception("fixture verification failed for %s", fixture.id)
-                out["verification_error"] = (
-                    "verification could not run for this task (see server logs)"
-                )
 
     # runs are never auto-saved; the user keeps one via POST /runs/save
     return out

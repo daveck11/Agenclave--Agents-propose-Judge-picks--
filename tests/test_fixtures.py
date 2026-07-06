@@ -96,6 +96,16 @@ def test_fixture_run_feeds_the_file_and_verifies(client, monkeypatch):
                 synthesized_patch=None,
             )
 
+        async def explain(self, task, candidates, verifications, winner):
+            from types import SimpleNamespace
+
+            return SimpleNamespace(
+                selected_agent="gpt",
+                ranking=[winner],
+                rationale="gpt takes the right approach and passes the tests",
+                synthesized_patch=None,
+            )
+
     monkeypatch.setattr(runs_mod, "dispatch", _fake_dispatch)
     monkeypatch.setattr(runs_mod, "Chairman", _FakeChairman)
     recorded = []

@@ -267,9 +267,9 @@ export default function RunResult({ result }) {
                 <span className="synth-pill">synthesised</span>
               )}
             </div>
-            {isFixture && verdictLine && (
+            {isFixture && (decision.rationale || verdictLine) && (
               <div className="verify-callout" style={{ marginTop: 8 }}>
-                {verdictLine}
+                {decision.rationale || verdictLine}
               </div>
             )}
             {!isFixture && ranking.length > 0 && (
