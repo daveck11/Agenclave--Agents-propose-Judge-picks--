@@ -129,13 +129,29 @@ export default function RunResult({ result }) {
   const tierOf = (a) => ((r.verification || []).find((v) => v.agent === a) || {}).tier
   let verdictLine = null
   if (isFixture && winner) {
+    const V = r.verification || []
+    const wv = V.find((v) => v.agent === winner) || {}
+    const wt = wv.total
+      ? `passes all its tests (${wv.passed}/${wv.total})`
+      : 'passes its tests'
+    let why
     if (chairmanPick === winner) {
-      verdictLine = `${modelName(winner)} passes the tests and has the strongest verified track record.`
+      why =
+        "The Chairman's read agrees, and it holds the strongest verified track record, so it is the one to trust."
     } else if (tierOf(chairmanPick) !== 'trusted') {
-      verdictLine = `The Chairman’s pick fails the tests, so verification takes ${modelName(winner)}, which passes.`
+      why = `The Chairman read-preferred ${modelName(chairmanPick)} on how the patch looks, but that patch fails the tests, so verification takes the candidate that actually works.`
     } else {
-      verdictLine = `Both top patches pass the tests, so verification takes ${modelName(winner)} as the more-trusted.`
+      why = `The Chairman read-preferred ${modelName(chairmanPick)}, and both patches pass, so verification breaks the tie by track record and takes the more-trusted of the two.`
     }
+    // Note any other candidates that were ruled out on the tests (not the winner,
+    // and not the judge's pick since that is already addressed above).
+    const ruledOut = V.filter(
+      (v) => v.tier !== 'trusted' && v.agent !== chairmanPick && v.agent !== winner
+    ).map((v) => modelName(v.agent))
+    const ruled = ruledOut.length
+      ? ` ${ruledOut.join(', ')} ${ruledOut.length === 1 ? 'is' : 'are'} ruled out for not passing the tests.`
+      : ''
+    verdictLine = `${modelName(winner)} ${wt}. ${why}${ruled}`
   }
 
   return (
