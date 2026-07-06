@@ -60,7 +60,12 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("SECRET_KEY", "AGENCLAVE_SECRET_KEY"),
     )
     access_token_expire_minutes: int = 60 * 24 * 7  # one week
-    database_url: str = f"sqlite+aiosqlite:///{DATA_DIR}/agenclave.db"
+    database_url: str = Field(
+        default=f"sqlite+aiosqlite:///{DATA_DIR}/agenclave.db",
+        # Accept the conventional DATABASE_URL (what Render/Neon inject) as well as
+        # the prefixed form, so account persistence works with either name.
+        validation_alias=AliasChoices("DATABASE_URL", "AGENCLAVE_DATABASE_URL"),
+    )
 
     @property
     def agent_model_list(self) -> list[str]:
