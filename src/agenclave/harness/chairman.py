@@ -57,14 +57,19 @@ DECISION_SCHEMA: dict = {
 
 CHAIRMAN_EXPLAIN_SYSTEM = (
     "You are the Chairman: a senior engineer explaining a code-fix decision to a "
-    "developer, plainly and honestly. You are given several candidate patches for "
-    "an issue, each labelled with its VERIFIED test result (did it apply? did the "
-    "tests pass?), and told which candidate is the verified winner. Verification "
-    "decided the winner - do not override it. Explain in a way the developer can "
-    "trust: say whether the candidates took SIMILAR or DIFFERENT approaches (call "
-    "out anything one did notably differently), note which passed or failed the "
-    "tests, and explain why the winner is the one to trust. Also state which "
-    "candidate you would have preferred by reading the diffs alone."
+    "developer, plainly, honestly, and IN DETAIL. You are given several candidate "
+    "patches for an issue, each labelled with its VERIFIED test result (did it "
+    "apply? did the tests pass?), and told which candidate is the verified winner. "
+    "Verification decided the winner - do not override it. Give a thorough, "
+    "CODE-LEVEL explanation the developer can trust. Reference the actual code: "
+    "name the functions, variables, and lines each candidate changed, and quote the "
+    "key edit (e.g. `return a - b` -> `return a + b`) rather than describing it "
+    "vaguely. Say whether the approaches were SIMILAR or DIFFERENT and, if one did "
+    "something notably different, explain exactly what and whether it matters. Note "
+    "which candidates passed or failed the tests and, for any failure, why the code "
+    "is wrong. Then explain concretely - at the level of the code itself - why the "
+    "winner's change is correct and the one to trust. Also state which candidate "
+    "you would have preferred by reading the diffs alone."
 )
 
 EXPLAIN_SCHEMA: dict = {
@@ -76,7 +81,13 @@ EXPLAIN_SCHEMA: dict = {
         },
         "rationale": {
             "type": "string",
-            "description": "3-6 sentences: approaches taken, test results, and why the winner is trustworthy.",
+            "description": (
+                "A thorough, code-level explanation (about 6-10 sentences, two short "
+                "paragraphs is fine): the specific code each candidate changed "
+                "(functions/variables/lines, quoting the key edit), whether the "
+                "approaches were similar or different, the test results and why any "
+                "failure is wrong, and why the winner's code is correct and trustworthy."
+            ),
         },
     },
     "required": ["read_preferred", "rationale"],
@@ -112,10 +123,15 @@ def _build_explain_prompt(
         parts.append(c.patch.strip() or "(empty patch)")
         parts.append("")
     parts.append(
-        "Write 3 to 6 sentences for the developer: did the candidates take similar "
-        "or different approaches (name anything notably different)? which passed or "
-        f"failed? and why is the verified winner ({winner}) the one to trust? Also "
-        "give read_preferred: the agent you would pick by reading the diffs alone."
+        "Write a thorough, code-level explanation for the developer (about 6 to 10 "
+        "sentences; two short paragraphs is fine). Be concrete about the code: for "
+        "each candidate, name the function/variable/lines it changed and quote the "
+        "key edit rather than describing it vaguely. Did the candidates take similar "
+        "or different approaches - and if one did something notably different, what "
+        "exactly, and does it matter? Which passed or failed the tests, and for any "
+        f"failure, why is the code wrong? Finally, why is the verified winner "
+        f"({winner}) the correct, trustworthy fix at the level of the code itself? "
+        "Also give read_preferred: the agent you would pick by reading the diffs alone."
     )
     return "\n".join(parts)
 

@@ -268,7 +268,10 @@ export default function RunResult({ result }) {
               )}
             </div>
             {isFixture && (decision.rationale || verdictLine) && (
-              <div className="verify-callout" style={{ marginTop: 8 }}>
+              <div
+                className="verify-callout"
+                style={{ marginTop: 8, whiteSpace: 'pre-wrap' }}
+              >
                 {decision.rationale || verdictLine}
               </div>
             )}

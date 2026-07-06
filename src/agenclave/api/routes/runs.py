@@ -146,7 +146,9 @@ async def run_pipeline(
         )
         try:
             agents = build_agents(settings.provider, run_models)
-            chairman = Chairman(settings.chairman_model)
+            # A judge/explanation is a short output, so a smaller token budget keeps
+            # the call fast without truncating the (few-paragraph) explanation.
+            chairman = Chairman(settings.chairman_model, max_tokens=1500)
             candidates = await dispatch(task, agents)
         except Exception as exc:  # noqa: BLE001 - surface a safe message, log detail.
             logger.exception("live dispatch failed")
