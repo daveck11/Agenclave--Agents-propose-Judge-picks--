@@ -32,3 +32,7 @@ asyncpg==0.30.0
 PyJWT==2.10.1
 bcrypt==4.2.1
 email-validator==2.2.0
+
+# Needed at runtime so a fixture run can VERIFY patches: verify_patch runs the
+# fixture's own tests via `python -m pytest` (git apply is used too - see Dockerfile).
+pytest==8.3.4

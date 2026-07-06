@@ -19,6 +19,12 @@ ENV PYTHONPATH=/app/src \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
+# git is used by verify_patch (`git apply`) to verify fixture patches; it is not
+# in python:slim by default.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY requirements-serve.txt ./
 RUN pip install --no-cache-dir -r requirements-serve.txt
 
@@ -26,6 +32,8 @@ RUN pip install --no-cache-dir -r requirements-serve.txt
 COPY src/ ./src/
 COPY models/ ./models/
 COPY results/ ./results/
+# Practice-bug fixtures (their files + tests) - the demo loads and verifies these.
+COPY tests/fixtures/ ./tests/fixtures/
 
 # SQLite db is created here at startup (DATA_DIR = ROOT/data).
 RUN mkdir -p /app/data
