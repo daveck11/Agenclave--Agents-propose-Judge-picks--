@@ -59,10 +59,10 @@ export default function AboutPage() {
 
       <span className="stage-label">Built honestly</span>
       <div className="honesty">
-        Trust is earned from <strong>real verification</strong>, never a benchmark shortcut. Per-model
+        Trust is earned from <strong>real verification</strong>. Per-model
         reliability is learned only from in-loop test runs and is kept strictly separate from any
         held-out grader. It also reports what did not work: transformer embeddings (MiniLM) lost to a
-        plain TF-IDF classifier, so the simpler model ships. No self-graded or fabricated scores.
+        plain TF-IDF classifier, so the simpler model ships.
       </div>
 
       <div className="result-cta">

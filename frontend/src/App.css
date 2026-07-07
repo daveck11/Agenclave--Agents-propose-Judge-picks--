@@ -160,6 +160,52 @@
   color: var(--accent-text);
 }
 
+/* Subtitle line with a right-aligned Clear/refresh control on the same row. */
+.subtitle-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 22px;
+}
+
+.subtitle-row .subtitle {
+  margin: 0;
+  flex: 1;
+}
+
+.clear-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--chip-bg);
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.clear-btn:hover {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  color: var(--accent-text);
+}
+
+.clear-btn .clear-icon {
+  font-size: 15px;
+  line-height: 1;
+  transition: transform 0.35s;
+}
+
+.clear-btn:hover .clear-icon {
+  transform: rotate(-180deg);
+}
+
 .foot {
   margin-top: 18px;
   text-align: center;

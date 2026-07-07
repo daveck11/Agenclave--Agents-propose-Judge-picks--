@@ -1,12 +1,10 @@
 import { useState } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 
 export default function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
-  const from = location.state?.from?.pathname || '/'
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -19,7 +17,8 @@ export default function LoginPage() {
     setError('')
     try {
       await login(email, password)
-      navigate(from, { replace: true })
+      // Always land on Triage (the start of the flow), not a deep link.
+      navigate('/', { replace: true })
     } catch (err) {
       setError(err.message || 'Login failed.')
     } finally {

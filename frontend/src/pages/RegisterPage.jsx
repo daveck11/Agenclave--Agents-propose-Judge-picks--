@@ -1,12 +1,10 @@
 import { useState } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 
 export default function RegisterPage() {
   const { register } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
-  const from = location.state?.from?.pathname || '/'
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -19,7 +17,8 @@ export default function RegisterPage() {
     setError('')
     try {
       await register(email, password)
-      navigate(from, { replace: true })
+      // New accounts start at Triage, the beginning of the flow.
+      navigate('/', { replace: true })
     } catch (err) {
       setError(err.message || 'Registration failed.')
     } finally {

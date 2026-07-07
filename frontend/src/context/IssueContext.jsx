@@ -7,7 +7,9 @@ const IssueContext = createContext(null)
 const STORAGE_KEY = 'agenclave_issue'
 // fixtureId is set when the issue was loaded from a practice-bug fixture; the
 // Code-fix run passes it so the agents get shown the file and are verified.
-const EMPTY = { title: '', body: '', triage: null, fixtureId: null }
+// runResult holds the last Code-fix pipeline result so it survives switching
+// sections (it is cleared only by the Clear button, not by navigation).
+const EMPTY = { title: '', body: '', triage: null, fixtureId: null, runResult: null }
 
 function load() {
   try {
@@ -32,13 +34,19 @@ export function IssueProvider({ children }) {
   }, [current])
 
   // Replace the whole current issue (used for the Triage -> Code-fix hand-off).
+  // A fresh issue starts with no run result.
   function setIssue({ title = '', body = '', triage = null, fixtureId = null }) {
-    setCurrent({ title, body, triage, fixtureId })
+    setCurrent({ title, body, triage, fixtureId, runResult: null })
   }
 
   // Update just the editable text (used by the Code-fix form).
   function patchIssue(partial) {
     setCurrent((c) => ({ ...c, ...partial }))
+  }
+
+  // Keep (or clear) the last Code-fix run result across section switches.
+  function setRunResult(runResult) {
+    setCurrent((c) => ({ ...c, runResult }))
   }
 
   // Clear the issue and forget it (the Clear button on both pages).
@@ -52,7 +60,9 @@ export function IssueProvider({ children }) {
   }
 
   return (
-    <IssueContext.Provider value={{ current, setIssue, patchIssue, clearIssue }}>
+    <IssueContext.Provider
+      value={{ current, setIssue, patchIssue, setRunResult, clearIssue }}
+    >
       {children}
     </IssueContext.Provider>
   )

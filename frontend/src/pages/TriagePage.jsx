@@ -125,7 +125,19 @@ export default function TriagePage() {
 
   return (
     <>
-      <p className="subtitle">Classify an issue by type and get next-step recommendations.</p>
+      <div className="subtitle-row">
+        <p className="subtitle">
+          Classify an issue by type and get next-step recommendations.
+        </p>
+        <button
+          type="button"
+          className="clear-btn"
+          onClick={clearAll}
+          title="Clear title and body"
+        >
+          <span className="clear-icon">⟳</span> Clear
+        </button>
+      </div>
 
       <div className="examples">
         <span className="examples-label">Examples:</span>
@@ -139,15 +151,6 @@ export default function TriagePage() {
             {ex.name}
           </button>
         ))}
-        <button
-          type="button"
-          className="example-btn icon-btn"
-          onClick={clearAll}
-          title="Clear title and body"
-          aria-label="Clear"
-        >
-          ⟳
-        </button>
       </div>
 
       <FixturePicker onLoad={loadFixture} />

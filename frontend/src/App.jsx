@@ -4,6 +4,7 @@ import './App.css'
 import Nav from './components/Nav'
 import AuthMenu from './components/AuthMenu'
 import ProtectedRoute from './components/ProtectedRoute'
+import { useAuth } from './auth/AuthContext'
 import TriagePage from './pages/TriagePage'
 import CodeFixPage from './pages/CodeFixPage'
 import WorkspacePage from './pages/WorkspacePage'
@@ -36,6 +37,7 @@ function useApiHealth() {
 
 export default function App() {
   const health = useApiHealth()
+  const { user } = useAuth()
 
   return (
     <div className="page">
@@ -59,13 +61,27 @@ export default function App() {
             </div>
           </div>
           <p className="tagline">Issue triage and best-of-N agent code fixes.</p>
-          <Nav />
+          {user && <Nav />}
         </header>
 
         <main className="card">
           <Routes>
-            <Route path="/" element={<TriagePage />} />
-            <Route path="/code-fix" element={<CodeFixPage />} />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <TriagePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/code-fix"
+              element={
+                <ProtectedRoute>
+                  <CodeFixPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/workspace"
               element={
@@ -74,7 +90,14 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
-            <Route path="/about" element={<AboutPage />} />
+            <Route
+              path="/about"
+              element={
+                <ProtectedRoute>
+                  <AboutPage />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route

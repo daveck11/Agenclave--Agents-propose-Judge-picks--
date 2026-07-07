@@ -27,7 +27,7 @@ const EXAMPLES = [
 
 export default function CodeFixPage() {
   const { user } = useAuth()
-  const { current, patchIssue, clearIssue } = useIssue()
+  const { current, patchIssue, setRunResult, clearIssue } = useIssue()
 
   // Whether the backend can dispatch live (a provider key is configured). Hides the
   // Live toggle on a keyless public demo.
@@ -50,27 +50,28 @@ export default function CodeFixPage() {
 
   const [live, setLive] = useState(false)
   const [status, setStatus] = useState('idle')
-  const [result, setResult] = useState(null)
+  // The run result lives in the shared issue context so it survives switching
+  // sections; only the Clear button (clearIssue) wipes it.
+  const result = current.runResult
   const [error, setError] = useState('')
   const [savedId, setSavedId] = useState(null)
   const [saving, setSaving] = useState(false)
 
   function loadExample(ex) {
     patchIssue({ title: ex.title, body: ex.body, fixtureId: null })
-    setResult(null)
+    setRunResult(null)
     setError('')
   }
 
   function loadFixture(f) {
     patchIssue({ title: f.title, body: f.body, fixtureId: f.id })
-    setResult(null)
+    setRunResult(null)
     setError('')
     setSavedId(null)
   }
 
   function clearAll() {
     clearIssue()
-    setResult(null)
     setError('')
     setStatus('idle')
     setSavedId(null)
@@ -78,7 +79,7 @@ export default function CodeFixPage() {
 
   async function run() {
     setError('')
-    setResult(null)
+    setRunResult(null)
     setSavedId(null)
     setStatus('running')
     try {
@@ -91,7 +92,7 @@ export default function CodeFixPage() {
         live,
         fixture_id: current.fixtureId || null,
       })
-      setResult(data)
+      setRunResult(data)
       setStatus('done')
     } catch (err) {
       setError(err.message || 'Could not reach the API.')
@@ -118,10 +119,20 @@ export default function CodeFixPage() {
 
   return (
     <>
-      <p className="subtitle">
-        Stage 1 triages the issue and gates Stage 2. Only a bug is dispatched to
-        the best-of-N agents.
-      </p>
+      <div className="subtitle-row">
+        <p className="subtitle">
+          Stage 1 triages the issue and gates Stage 2. Only a bug is dispatched to
+          the best-of-N agents.
+        </p>
+        <button
+          type="button"
+          className="clear-btn"
+          onClick={clearAll}
+          title="Clear the issue and this run"
+        >
+          <span className="clear-icon">⟳</span> Clear
+        </button>
+      </div>
 
       <div className="examples">
         <span className="examples-label">Examples:</span>
@@ -135,15 +146,6 @@ export default function CodeFixPage() {
             {ex.name}
           </button>
         ))}
-        <button
-          type="button"
-          className="example-btn icon-btn"
-          onClick={clearAll}
-          title="Clear title and body"
-          aria-label="Clear"
-        >
-          ⟳
-        </button>
       </div>
 
       <FixturePicker onLoad={loadFixture} />
